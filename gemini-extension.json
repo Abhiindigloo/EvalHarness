@@ -1,0 +1,6 @@
+{
+  "name": "model-finder",
+  "version": "1.2.0",
+  "description": "Pick the right AI model with evidence: compare Claude, Gemini, OpenAI, cloud and local models; run your own examples to measure quality, latency and cost; generate cheapest-first routing; and size local models including KV cache.",
+  "contextFileName": "GEMINI.md"
+}

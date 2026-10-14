@@ -1,0 +1,55 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "model-finder",
+  "version": "1.2.0",
+  "description": "Pick the right AI model with evidence: compare Claude, Gemini, OpenAI, cloud and local models; run your own examples to measure quality, latency and cost; generate cheapest-first routing; and size local models including KV cache.",
+  "author": {
+    "name": "Indigloo",
+    "email": "abhishek.kumar@indigloo.co",
+    "url": "https://indigloo.co"
+  },
+  "homepage": "https://abhiindigloo.github.io/modelfinder-website/",
+  "repository": "https://github.com/Abhiindigloo/EvalHarness",
+  "keywords": [
+    "model-selection",
+    "llm",
+    "evaluation",
+    "routing",
+    "cost",
+    "claude",
+    "gemini",
+    "openai",
+    "local-models",
+    "kv-cache",
+    "litellm"
+  ],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "capabilities": [
+          "Interactive"
+        ],
+        "category": "Developer Tools",
+        "defaultPrompt": [
+          "Which model should I use for this task? Compare providers and explain the cost and quality tradeoffs.",
+          "Test whether a cheaper model passes on my examples before I switch.",
+          "Will this open-weight model fit on my GPU at 32k context?"
+        ],
+        "developerName": "Indigloo",
+        "displayName": "Model Finder",
+        "longDescription": "Compare suitable AI models across Anthropic Claude, Google Gemini, OpenAI, cloud platforms, and open-weight or local models using current official sources. Run the same examples against shortlisted models with a standard-library Python script to measure pass rate, latency, and billed cost using your own API keys from environment variables. Generate a cheapest-first routing setup (standalone router with quality guards plus a LiteLLM config), and estimate local memory for weights and KV cache. Advisory only: nothing is deployed, no active model is changed, and no data is sent anywhere except to the providers you configure and approve.",
+        "shortDescription": "Choose AI models with evidence",
+        "websiteURL": "https://abhiindigloo.github.io/modelfinder-website/",
+        "supportURL": "https://abhiindigloo.github.io/modelfinder-website/support.html",
+        "privacyPolicyURL": "https://abhiindigloo.github.io/modelfinder-website/privacy.html",
+        "termsOfServiceURL": "https://abhiindigloo.github.io/modelfinder-website/terms.html",
+        "logo": "assets/logo.png",
+        "composerIcon": "assets/composer-icon.png"
+      },
+      "publication": {
+        "countries": [],
+        "release_notes": "1.2.0: personal-data and secrets guard (blocks Aadhaar, PAN, cards, email, UPI, mobile numbers and API keys before sending by default), router personal-data policy, and a DPDP Act data-protection record. 1.1.0 added eval-models, route-models and size-local-model."
+      }
+    }
+  }
+}

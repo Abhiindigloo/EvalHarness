@@ -1,0 +1,20 @@
+{
+  "name": "model-finder",
+  "interface": {
+    "displayName": "Model Finder"
+  },
+  "plugins": [
+    {
+      "name": "model-finder",
+      "source": {
+        "source": "url",
+        "url": "https://github.com/Abhiindigloo/EvalHarness.git",
+        "ref": "main"
+      },
+      "policy": {
+        "installation": "AVAILABLE"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

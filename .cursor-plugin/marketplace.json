@@ -1,0 +1,17 @@
+{
+  "name": "model-finder",
+  "owner": {
+    "name": "Indigloo",
+    "email": "abhishek.kumar@indigloo.co"
+  },
+  "metadata": {
+    "description": "Model Finder plugin marketplace by Indigloo"
+  },
+  "plugins": [
+    {
+      "name": "model-finder",
+      "source": "./",
+      "description": "Pick the right AI model with evidence: compare Claude, Gemini, OpenAI, cloud and local models; run your own examples to measure quality, latency and cost; generate cheapest-first routing; and size local models including KV cache."
+    }
+  ]
+}

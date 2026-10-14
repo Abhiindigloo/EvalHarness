@@ -1,0 +1,28 @@
+{
+  "$schema": "https://code.claude.com/schemas/plugin.json",
+  "name": "model-finder",
+  "displayName": "Model Finder",
+  "description": "Pick the right AI model with evidence: compare Claude, Gemini, OpenAI, cloud and local models; run your own examples to measure quality, latency and cost; generate cheapest-first routing; and size local models including KV cache.",
+  "version": "1.2.0",
+  "skills": "./skills/",
+  "author": {
+    "name": "Indigloo",
+    "email": "abhishek.kumar@indigloo.co",
+    "url": "https://indigloo.co"
+  },
+  "homepage": "https://abhiindigloo.github.io/modelfinder-website/",
+  "repository": "https://github.com/Abhiindigloo/EvalHarness",
+  "keywords": [
+    "model-selection",
+    "llm",
+    "evaluation",
+    "routing",
+    "cost",
+    "claude",
+    "gemini",
+    "openai",
+    "local-models",
+    "kv-cache",
+    "litellm"
+  ]
+}

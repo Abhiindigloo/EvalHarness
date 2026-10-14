@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+model-eval-results/
+results/
+routing/
+.env
+.env.*
+!.env.example
+.venv/
+venv/
+.DS_Store
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+secrets.json

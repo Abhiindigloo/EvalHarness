@@ -1,0 +1,65 @@
+{
+  "task": "Extract invoice number, date, and total from an email as JSON",
+  "settings": {
+    "max_output_tokens": 300,
+    "temperature": 0,
+    "timeout_s": 60,
+    "system": "Return only a JSON object with keys invoice_number, date (YYYY-MM-DD), and total (number)."
+  },
+  "pass_threshold": 0.9,
+  "repeats": 1,
+  "candidates": [
+    {
+      "id": "claude-small",
+      "provider": "anthropic",
+      "model": "REPLACE-with-verified-model-id",
+      "api_key_env": "ANTHROPIC_API_KEY",
+      "price_per_million": null
+    },
+    {
+      "id": "gemini-small",
+      "provider": "gemini",
+      "model": "REPLACE-with-verified-model-id",
+      "api_key_env": "GEMINI_API_KEY",
+      "price_per_million": null
+    },
+    {
+      "id": "openai-small",
+      "provider": "openai",
+      "model": "REPLACE-with-verified-model-id",
+      "api_key_env": "OPENAI_API_KEY",
+      "price_per_million": {
+        "input": 0.0,
+        "output": 0.0,
+        "source": "REPLACE-with-official-pricing-URL",
+        "checked": "REPLACE-with-YYYY-MM-DD"
+      }
+    },
+    {
+      "id": "local-llama",
+      "provider": "openai_compatible",
+      "model": "REPLACE-with-local-model-name",
+      "base_url": "http://localhost:11434",
+      "price_per_million": null
+    }
+  ],
+  "examples": [
+    {
+      "id": "plain-invoice",
+      "input": "Hi, attached is invoice INV-1042 dated 3 March 2026 for a total of 1,250.00. Thanks!",
+      "checks": [
+        { "type": "json_keys", "keys": ["invoice_number", "date", "total"] },
+        { "type": "contains", "value": "INV-1042" },
+        { "type": "contains", "value": "2026-03-03" }
+      ]
+    },
+    {
+      "id": "no-invoice",
+      "input": "Can we move our call to Thursday?",
+      "checks": [
+        { "type": "json_keys", "keys": ["invoice_number"] },
+        { "type": "not_contains", "value": "INV-" }
+      ]
+    }
+  ]
+}
