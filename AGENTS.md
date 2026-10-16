@@ -7,4 +7,6 @@ Before a task, check whether one of these skills applies and follow it when it m
 - **route-models**: generate cheapest-first routing with quality guards and a LiteLLM config. Read [skills/route-models/SKILL.md](skills/route-models/SKILL.md).
 - **size-local-model**: estimate local memory for weights and KV cache. Read [skills/size-local-model/SKILL.md](skills/size-local-model/SKILL.md).
 
+The bundled `model-finder` MCP server provides read-only tools for these skills: `modelfinder_audit_models`, `modelfinder_draft_eval_examples`, `modelfinder_create_eval_config`, `modelfinder_validate_eval_config`, `modelfinder_check_output`, `modelfinder_rank_eval_results`, `modelfinder_generate_routing`, `modelfinder_estimate_cost`, `modelfinder_estimate_memory` and `modelfinder_scan_sensitive_data`. Prefer them over manual arithmetic or ad hoc scripts. If a tool says the project is unknown (Codex starts servers without a workspace), call it again with `path` set to the absolute path of the current project.
+
 These skills are advisory. Never change the user's active model, deploy anything, or send data to a provider without explicit approval. API keys come only from environment variables.

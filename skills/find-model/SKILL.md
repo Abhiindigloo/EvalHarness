@@ -1,9 +1,9 @@
 ---
 name: find-model
-description: Compare and recommend AI models across providers (Anthropic Claude, Google Gemini, OpenAI, Bedrock, Vertex AI, Azure, Mistral, open-weight and local models) for a specific task, budget, and deployment route. Use whenever the user asks which model to use, whether a cheaper model is good enough, how models compare on quality, cost, speed, context, privacy, or availability, which model suits a coding subtask in their IDE or agent (planning, edits, review, tests, autocomplete), or mentions model finder (or "modal finder"), even if they never say "compare". For running a real evaluation use eval-models; for fallback or routing configs use route-models; for local hardware memory use size-local-model.
+description: Compare and recommend AI models across providers (Anthropic Claude, Google Gemini, OpenAI, Bedrock, Vertex AI, Azure, Mistral, open-weight and local models) for a specific task, budget, and deployment route. Use whenever the user asks which model to use, whether a cheaper model is good enough, how models compare on quality, cost, speed, context, privacy, or availability, which model suits a coding subtask in their IDE or agent (planning, edits, review, tests, autocomplete), asks which models their codebase uses, or mentions model finder (or "modal finder"), even if they never say "compare". For running a real evaluation use eval-models; for fallback or routing configs use route-models; for local hardware memory use size-local-model.
 metadata:
   author: Indigloo
-  homepage: https://abhiindigloo.github.io/modelfinder-website/
+  homepage: https://github.com/Abhiindigloo/EvalHarness
 ---
 
 # Model Finder
@@ -31,6 +31,12 @@ Capture budget and currency, latency target, volume, available providers and sub
 ## Coding and IDE requests
 
 When the user is working in an IDE or coding agent, read references/coding-tasks.md. It covers per-subtask model choice, judging candidates by the repository's own tests, cost per accepted change, and what the skill can and cannot do inside an IDE. If repository context would change the answer and the host allows file access, you may inspect the repository read-only, following the privacy rules in that reference.
+
+## Audit what the repository already uses
+
+In a repository, start from facts: call the `modelfinder_audit_models` MCP tool (or run `python3 ../eval-models/scripts/repo_scan.py audit .` from this skill's folder). It lists each model ID literal with its provider family, route hints (Bedrock, Vertex AI, Azure, OpenRouter), file:line locations, whether it is hard-coded or an environment-variable default, and the AI SDKs in use. It reads only inside the workspace, skips secret-like files and dependency folders, and never returns line content. Use the inventory to ground the recommendation: which calls could move to a cheaper model, which IDs use `-latest` aliases, and which hard-coded IDs to move into configuration. It does not check deprecation status; verify each ID on the provider's documentation.
+
+For planning numbers use the `modelfinder_estimate_cost` tool (monthly token cost, cost per accepted result) instead of mental arithmetic, with prices from official pricing pages only.
 
 ## Verify current facts
 

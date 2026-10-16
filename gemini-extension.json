@@ -1,6 +1,17 @@
 {
   "name": "model-finder",
-  "version": "1.2.0",
-  "description": "Pick the right AI model with evidence: compare Claude, Gemini, OpenAI, cloud and local models; run your own examples to measure quality, latency and cost; generate cheapest-first routing; and size local models including KV cache.",
-  "contextFileName": "GEMINI.md"
+  "version": "1.3.2",
+  "description": "Find the cheapest AI model that passes your own tests: audit the models your repo uses, draft evals from your prompts, measure quality, latency and cost with your keys, generate cheapest-first routing, and size local models. Includes a local MCP server; nothing is sent to Indigloo.",
+  "contextFileName": "GEMINI.md",
+  "mcpServers": {
+    "model-finder": {
+      "command": "python3",
+      "args": [
+        "${extensionPath}${/}mcp${/}server.py"
+      ],
+      "env": {
+        "MODEL_FINDER_ROOT": "${workspacePath}"
+      }
+    }
+  }
 }

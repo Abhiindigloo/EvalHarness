@@ -31,17 +31,28 @@ OUTPUT_PREVIEW_CHARS = 4_000
 TRUNCATION_REASONS = {"length", "max_tokens", "MAX_TOKENS"}
 
 
+PLACEHOLDER = "REPLACE-with"
+PLACEHOLDER_ERROR = ("Config still contains template placeholders ('REPLACE-with...'). "
+                     "Fill in verified model IDs and prices, or set price to null.")
+
+
 def load_config(path: Path) -> Dict[str, Any]:
     if path.stat().st_size > 20 * 1024 * 1024:
         raise core.ConfigError("Config file is larger than 20 MiB.")
     text = path.read_text(encoding="utf-8")
-    if "REPLACE-with" in text:
-        raise core.ConfigError("Config still contains template placeholders ('REPLACE-with...'). "
-                               "Fill in verified model IDs and prices, or set price to null.")
+    if PLACEHOLDER in text:
+        raise core.ConfigError(PLACEHOLDER_ERROR)
     try:
         raw = json.loads(text)
     except json.JSONDecodeError as exc:
         raise core.ConfigError(f"Config is not valid JSON: {exc}") from None
+    return parse_config(raw)
+
+
+def parse_config(raw: Any) -> Dict[str, Any]:
+    """Validate an already-parsed config object (used by the CLI and the MCP server)."""
+    if isinstance(raw, dict) and PLACEHOLDER in json.dumps(raw):
+        raise core.ConfigError(PLACEHOLDER_ERROR)
     if not isinstance(raw, dict):
         raise core.ConfigError("Config must be a JSON object.")
 

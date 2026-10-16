@@ -440,6 +440,48 @@ def compute_cost(usage: Usage, price: Optional[Price]) -> Optional[float]:
     return total / 1_000_000
 
 
+def estimate_monthly_cost(requests_per_month: float, input_tokens: float, output_tokens: float,
+                          input_price: float, output_price: float, cached_fraction: float = 0.0,
+                          cached_input_price: Optional[float] = None,
+                          pass_rate: Optional[float] = None) -> Dict[str, Any]:
+    """Planning estimate from per-request averages and USD-per-million prices.
+
+    cached_fraction is the share of input tokens billed at the cached rate. When
+    pass_rate is given, cost per accepted result assumes failures are retried
+    until one passes (expected attempts = 1 / pass_rate).
+    """
+    requests_per_month = number_in_range(requests_per_month, "requests_per_month", 0, 1e12)
+    input_tokens = number_in_range(input_tokens, "input_tokens", 0, 1e8)
+    output_tokens = number_in_range(output_tokens, "output_tokens", 0, 1e8)
+    input_price = number_in_range(input_price, "input_price", 0, 10_000)
+    output_price = number_in_range(output_price, "output_price", 0, 10_000)
+    cached_fraction = number_in_range(cached_fraction, "cached_fraction", 0, 1)
+    if cached_fraction and cached_input_price is None:
+        raise ConfigError("cached_input_price is required when cached_fraction is above 0.")
+    cached_rate = input_price if cached_input_price is None else number_in_range(
+        cached_input_price, "cached_input_price", 0, 10_000)
+    per_request = (input_tokens * (1 - cached_fraction) * input_price
+                   + input_tokens * cached_fraction * cached_rate
+                   + output_tokens * output_price) / 1_000_000
+    result: Dict[str, Any] = {
+        "cost_per_request_usd": per_request,
+        "monthly_cost_usd": per_request * requests_per_month,
+        "assumptions": [
+            "Token charges only: tools, storage, batch discounts, tiered pricing and taxes are excluded.",
+            "Prices are whatever was supplied; confirm them on the provider's official pricing page.",
+        ],
+    }
+    if pass_rate is not None:
+        pass_rate = number_in_range(pass_rate, "pass_rate", 0.000001, 1)
+        result["cost_per_accepted_result_usd"] = per_request / pass_rate
+        result["monthly_cost_with_retries_usd"] = per_request * requests_per_month / pass_rate
+        result["assumptions"].append("Failed requests are retried until one passes (1 / pass_rate attempts).")
+    for key, value in result.items():  # drop floating-point noise such as 2.6999999999999997
+        if isinstance(value, float):
+            result[key] = round(value, 10)
+    return result
+
+
 # --------------------------------------------------------------------------
 # HTTP
 # --------------------------------------------------------------------------

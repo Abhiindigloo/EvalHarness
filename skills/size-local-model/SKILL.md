@@ -3,7 +3,7 @@ name: size-local-model
 description: Estimate the GPU or unified memory needed to run an open-weight model locally, covering weights at a given precision or quantization plus KV cache for a chosen context length and concurrency, and compare it with available memory. Use whenever the user asks whether a model fits their GPU, Mac, or server, how much VRAM or RAM a model needs, what quantization to use, how context length or batch size affects memory, or how to size hardware for Ollama, llama.cpp, vLLM, or LM Studio, even if they don't say "memory". Gives estimates with stated assumptions, never a guarantee of fit.
 metadata:
   author: Indigloo
-  homepage: https://abhiindigloo.github.io/modelfinder-website/
+  homepage: https://github.com/Abhiindigloo/EvalHarness
 ---
 
 # Estimate local model memory
@@ -32,6 +32,8 @@ python3 scripts/estimate_memory.py --params-b 8.03 --bits 16 \
 ```
 
 Add `--json` for machine-readable output. Without the KV inputs, only weights are estimated and the output says so.
+
+The `modelfinder_estimate_memory` MCP tool runs the same calculation with the same inputs.
 
 Formulas (binary GiB):
 

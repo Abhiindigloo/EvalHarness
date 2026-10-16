@@ -1,0 +1,10 @@
+{"input": "I was charged twice for the September invoice.", "expected": "billing"}
+{"input": "Please refund my order; the box arrived crushed.", "expected": "refund"}
+{"input": "The mobile app freezes when I open settings.", "expected": "bug"}
+{"input": "Refund to my account please, reach me at meera.iyer@example.com", "expected": "refund"}
+{"input": "Search results are empty for every query since Tuesday.", "expected": "bug"}
+{"input": "Call me back on 9876501234 about my bill", "expected": "billing"}
+{"input": "Our integration fails with AWS key AKIAIOSFODNN7EXAMPLE in the logs", "expected": "bug"}
+{"input": "Please refund my order; the box arrived crushed.", "expected": "refund"}
+{"input": "How do I change the language of the dashboard?", "expected": "other"}
+{"input": "Exported PDF invoices are missing the GST number.", "expected": "bug"}

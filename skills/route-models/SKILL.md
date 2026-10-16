@@ -3,7 +3,7 @@ name: route-models
 description: Generate a cheapest-first model routing setup with fallbacks and quality escalation, from eval-models results or a user-chosen model order. Produces a standalone Python router (escalates when a reply errors or fails format guards), a routing.json, and a LiteLLM proxy config (error-based fallbacks). Use whenever the user wants model routing, fallbacks, failover, escalation to a stronger model, cost-saving cascades, "use the cheap model unless it fails", or a LiteLLM or gateway config across Claude, Gemini, OpenAI, or local models, even if they don't say "routing". Never deploys or applies anything.
 metadata:
   author: Indigloo
-  homepage: https://abhiindigloo.github.io/modelfinder-website/
+  homepage: https://github.com/Abhiindigloo/EvalHarness
 ---
 
 # Generate a cheapest-first routing setup
@@ -41,6 +41,8 @@ Output in `routing/`:
 - `router.py` and `mf_core.py`: standalone router using only the Python standard library. Library call `route(prompt, load_routing("routing.json"))` returns the text, the model used, whether it escalated, and every attempt with latency and cost. CLI: `python3 router.py routing.json "prompt"`.
 - `litellm.config.yaml`: LiteLLM proxy config with `fallbacks` and `os.environ/` key references.
 - `ROUTING.md`: the plan in plain language.
+
+The `modelfinder_generate_routing` MCP tool returns the same routing.json and LiteLLM config without writing files; use the script when the user wants the standalone router copied into their project.
 
 ## Explain the two layers honestly
 

@@ -1,0 +1,44 @@
+<evaluation>
+  <!-- Run with the working directory set to evaluations/fixture-repo. Answers were verified with the
+       Model Finder MCP tools on 2026-10-16 and do not change unless the fixture changes. -->
+  <qa_pair>
+    <question>In this helpdesk codebase, one AI model identifier is written out at more source locations than any other. What is that identifier, exactly as it appears in the code?</question>
+    <answer>gpt-4.1-mini</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>How many of the model identifiers used in this repository are reached through a cloud platform or third-party gateway rather than the model vendor's own API?</question>
+    <answer>3</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Exactly one folder under services/ lets operators swap its model through configuration instead of a code change. What is that folder's name?</question>
+    <answer>triage</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Counting distinct model identifiers, how many are fixed in source code rather than taken from configuration or the environment?</question>
+    <answer>9</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>When candidate eval examples are drafted from this repository's fixtures, some are withheld for privacy reasons. Which kind of personal information is responsible for the most withheld matches? Answer with the category name the tools use.</question>
+    <answer>email</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Assume OpenAI models cost $0.40 per million input tokens and $1.60 per million output tokens, and Anthropic models cost $1.00 and $5.00. The model identifier that appears at the most locations in this repo will serve 40,000 requests a month averaging 900 input and 150 output tokens. What is its monthly token cost in US dollars, to two decimal places?</question>
+    <answer>24.00</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>We want to replace the legacy bot with a self-hosted 8.03-billion-parameter model at 16-bit weights, with 32 layers, 8 key/value heads and a head dimension of 128, serving 4 conversations at once with 8,192 tokens of context each, plus a 10% memory allowance. How many GiB of memory would it need in total, to two decimal places?</question>
+    <answer>20.85</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>The legacy folder references an Anthropic model from an older generation than any other Anthropic model in the repo. What is its exact identifier?</question>
+    <answer>claude-2.1</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>Among the support-ticket eval examples that can be drafted from the JSONL fixture after privacy filtering, how many have a reference label indicating a software defect?</question>
+    <answer>3</answer>
+  </qa_pair>
+  <qa_pair>
+    <question>If we evaluate 3 candidate models on every support-ticket example that survives privacy filtering from the JSONL fixture, running each example 3 times, how many model API calls will the run make?</question>
+    <answer>54</answer>
+  </qa_pair>
+</evaluation>

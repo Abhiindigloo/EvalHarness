@@ -1,0 +1,6 @@
+{"examples": [
+  {"prompt": "Summarise: customer wants faster shipping options for bulk orders.", "expected": "Customer requests faster bulk shipping."},
+  {"prompt": "Summarise: vendor PAN ABCPE1234F needs updating on the invoice.", "expected": "Vendor PAN update needed."},
+  {"prompt": "Summarise: two agents disagreed on the refund policy for damaged items.", "expected": "Refund policy disagreement on damaged items."},
+  {"prompt": "Summarise: user ravi.k@example.org reports login loops on Safari.", "expected": "Safari login loop."}
+]}

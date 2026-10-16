@@ -399,7 +399,7 @@ class SensitiveDataTest(unittest.TestCase):
 
 
 class MemoryTest(unittest.TestCase):
-    def test_weights_match_website_formula(self):
+    def test_weights_formula_binary_gib(self):
         est = memmod.estimate(7, 16)
         self.assertAlmostEqual(est.weights_gib, 13.0385160446167, places=9)
         self.assertIsNone(est.kv_cache_gib)

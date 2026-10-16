@@ -98,34 +98,29 @@ def litellm_yaml(chain: List[core.Candidate], timeout_s: float) -> str:
     return "\n".join(lines) + "\n"
 
 
-def main(argv: Optional[List[str]] = None) -> int:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--results", type=Path, required=True)
-    parser.add_argument("--out", type=Path, default=Path("routing"))
-    parser.add_argument("--guards", type=Path, help='JSON file: {"checks": [...]} applied to every reply')
-    parser.add_argument("--chain", help="explicit comma-separated order, overriding cost order")
-    parser.add_argument("--include-unknown-cost", action="store_true")
-    parser.add_argument("--pii-policy", choices=("block", "warn", "off"), default="warn",
-                        help="router behaviour when a prompt contains detected personal data or secrets")
-    args = parser.parse_args(argv)
+PII_POLICIES = ("block", "warn", "off")
 
-    try:
-        results = json.loads(args.results.read_text(encoding="utf-8"))
-        if not isinstance(results, dict) or results.get("schema") != "model-finder-eval/1":
-            raise core.ConfigError("--results must be a results.json written by eval_models.py.")
-        cands = {c["id"]: core.validate_candidate(c, i) for i, c in enumerate(results.get("candidates", []))}
-        settings_raw = results.get("settings") or {}
-        core.validate_settings(settings_raw)
-        guards: List[Dict[str, Any]] = []
-        if args.guards:
-            graw = json.loads(args.guards.read_text(encoding="utf-8"))
-            guards = core.validate_checks((graw or {}).get("checks"), "guards", allow_empty=True)
-        manual = [x.strip() for x in args.chain.split(",") if x.strip()] if args.chain else None
-        order, dropped = build_chain(results, manual, args.include_unknown_cost)
-        chain = [cands[i] for i in order]
-    except (core.ConfigError, OSError, json.JSONDecodeError, KeyError) as exc:
-        print(f"Input error: {exc}", file=sys.stderr)
-        return 2
+
+def build_routing(results: Any, guard_checks: Optional[List[Any]] = None,
+                  manual: Optional[List[str]] = None, include_unknown: bool = False,
+                  pii_policy: str = "warn") -> Tuple[Dict[str, Any], List[core.Candidate], str]:
+    """Return (routing.json object, chain candidates, LiteLLM YAML). Used by the CLI and MCP server."""
+    if not isinstance(results, dict) or results.get("schema") != "model-finder-eval/1":
+        raise core.ConfigError("results must be a results.json object written by eval_models.py.")
+    if pii_policy not in PII_POLICIES:
+        raise core.ConfigError(f"pii_policy must be one of {', '.join(PII_POLICIES)}.")
+    cands_raw = results.get("candidates")
+    if not isinstance(cands_raw, list):
+        raise core.ConfigError("results.candidates must be a list.")
+    cands = {c.id: c for c in (core.validate_candidate(raw, i) for i, raw in enumerate(cands_raw))}
+    settings_raw = results.get("settings") or {}
+    core.validate_settings(settings_raw)
+    guards = core.validate_checks(guard_checks or [], "guards", allow_empty=True)
+    order, dropped = build_chain(results, manual, include_unknown)
+    missing = [i for i in order if i not in cands]
+    if missing:
+        raise core.ConfigError(f"Chain names candidates missing from results.candidates: {missing}")
+    chain = [cands[i] for i in order]
 
     notes: List[str] = []
     if dropped:
@@ -143,16 +138,42 @@ def main(argv: Optional[List[str]] = None) -> int:
         "settings": settings_raw,
         "chain": [c.public_dict() for c in chain],
         "guards": guards,
-        "pii_policy": args.pii_policy,
+        "pii_policy": pii_policy,
         "notes": notes,
     }
+    return routing, chain, litellm_yaml(chain, float(settings_raw.get("timeout_s", 60)))
+
+
+def main(argv: Optional[List[str]] = None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--results", type=Path, required=True)
+    parser.add_argument("--out", type=Path, default=Path("routing"))
+    parser.add_argument("--guards", type=Path, help='JSON file: {"checks": [...]} applied to every reply')
+    parser.add_argument("--chain", help="explicit comma-separated order, overriding cost order")
+    parser.add_argument("--include-unknown-cost", action="store_true")
+    parser.add_argument("--pii-policy", choices=PII_POLICIES, default="warn",
+                        help="router behaviour when a prompt contains detected personal data or secrets")
+    args = parser.parse_args(argv)
+
+    try:
+        results = json.loads(args.results.read_text(encoding="utf-8"))
+        guard_checks: List[Any] = []
+        if args.guards:
+            graw = json.loads(args.guards.read_text(encoding="utf-8"))
+            guard_checks = (graw or {}).get("checks") or []
+        manual = [x.strip() for x in args.chain.split(",") if x.strip()] if args.chain else None
+        routing, chain, yaml_text = build_routing(results, guard_checks, manual,
+                                                  args.include_unknown_cost, args.pii_policy)
+    except (core.ConfigError, OSError, json.JSONDecodeError, KeyError) as exc:
+        print(f"Input error: {exc}", file=sys.stderr)
+        return 2
+    guards, notes = routing["guards"], routing["notes"]
     try:
         args.out.mkdir(parents=True, exist_ok=True)
         (args.out / "routing.json").write_text(json.dumps(routing, indent=2), encoding="utf-8")
         shutil.copyfile(HERE.parent / "assets" / "router.py", args.out / "router.py")
         shutil.copyfile(HERE / "mf_core.py", args.out / "mf_core.py")
-        (args.out / "litellm.config.yaml").write_text(
-            litellm_yaml(chain, float(settings_raw.get("timeout_s", 60))), encoding="utf-8")
+        (args.out / "litellm.config.yaml").write_text(yaml_text, encoding="utf-8")
         rows = {r["id"]: r for r in results.get("summary", [])}
         doc = ["# Routing plan", "", "Cascade (lowest cost per passing call first; each step is more reliable):", ""]
         for pos, cand in enumerate(chain, 1):
@@ -163,7 +184,7 @@ def main(argv: Optional[List[str]] = None) -> int:
                        f"{'n/a' if rate is None else f'{rate:.0%}'}, eval cost "
                        f"{'unknown' if cost is None else f'${cost:.6f}'}")
         doc += ["", f"Guards: {len(guards)} check(s) on every reply.",
-                f"Personal-data policy: {args.pii_policy} (block = never send prompts with detected "
+                f"Personal-data policy: {routing['pii_policy']} (block = never send prompts with detected "
                 "personal data or secrets; warn = send and report categories; off = no check).", ""]
         doc += [f"- {n}" for n in notes]
         doc += ["", "Run: `python3 router.py routing.json \"your prompt\"`.",
