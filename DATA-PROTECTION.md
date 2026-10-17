@@ -2,7 +2,7 @@
 
 How Model Finder handles personal data, mapped to India's Digital Personal Data Protection Act 2023 (DPDPA) and DPDP Rules 2025.
 
-> This is an engineering record, not legal advice. Have counsel confirm the role analysis, notices, and open items below before launch. Last reviewed: 16 October 2026 (v1.3.3).
+> This is an engineering record, not legal advice. Have counsel confirm the role analysis, notices, and open items below before launch. Last reviewed: 16 October 2026 (v1.3.4).
 
 ## Regulatory status
 
@@ -18,7 +18,6 @@ How Model Finder handles personal data, mapped to India's Digital Personal Data 
 | Plugin skills (find-model, eval-models, route-models, size-local-model) | Runs on the user's machine. Inputs go only to model providers the user configures. | Software publisher, not a Data Fiduciary for user data. The user's organisation decides purpose and means. | None |
 | Local MCP server (`mcp/server.py`, v1.3.0) | Runs on the user's machine; no network connections. Tool results go to the user's own AI app (and so to that app's model provider) | Software publisher, not a Data Fiduciary | None |
 | Repository and issues (GitHub) | Code download, plus public issues and discussions | Data Fiduciary only for what users choose to post; GitHub acts under its own terms | Whatever a user posts publicly (for example a GitHub username) |
-| Support email | Indigloo inbox | Data Fiduciary | Sender name, email, message content |
 | Planned Cloud Run service | Indigloo's Google Cloud project | Data Fiduciary; Google acts as Data Processor | Request metadata (IP address, user agent) unless minimised; demo inputs if a demo is offered |
 
 **Consequence:** the plugin is designed so Indigloo never receives users' data. For eval and routing, the user's organisation is the Data Fiduciary. The plugin's job is to make it hard to process personal data by accident, and easy for that organisation to meet its own obligations.
@@ -58,18 +57,18 @@ It reports **categories and counts only**; matched values never appear in consol
 
 ## DPDP obligations: what applies where
 
-| Obligation (DPDPA / Rules) | Plugin | Repository and issues | Support email | Cloud Run service (planned) |
-|---|---|---|---|---|
-| Notice before collection (s.5, Rule 3) | N/A to Indigloo; users' orgs give their own notices | PRIVACY.md in the repository | Needed: short notice on the support page | **Required** before launch |
-| Consent / legitimate use (s.4, 6, 7) | User's org decides; guard forces an explicit choice | N/A | Voluntary contact can rely on the sender's request; confirm with counsel | **Required** for any demo input |
-| Purpose limitation and minimisation | Guard blocks by default | Use posts only to answer them; SUPPORT.md asks users not to post personal data | Use only to answer the request | No accounts, no stored inputs, no prompt logging |
-| Reasonable security safeguards (s.8(5), Rule 6) | Built in (see above) | Repository access controls; private vulnerability reporting | Restrict inbox access | See Cloud Run controls below |
-| Breach notification: affected people without delay, Board within 72 hours (s.8(6), Rule 7) | N/A | N/A | Needed | Needed: incident runbook |
-| Erasure when purpose is served (s.8(7), Rule 8) | Outputs off by default when personal data allowed | Edit or delete issue content on request where GitHub allows | Define a retention period | Short log retention (see below) |
-| Grievance redressal and contact (s.8(10), s.13) | — | SUPPORT.md and PRIVACY.md | Same contact | Same contact |
-| Children's data: verifiable parental consent (s.9) | — | — | Unlikely | Service intended for adults; collect no personal data |
-| Processor contracts (s.8(2)) | — | GitHub terms | Email provider terms | Google Cloud data processing terms |
-| Cross-border transfer (s.16) | User's org; transfers allowed unless a country is restricted by notification | — | — | Prefer `asia-south1` (Mumbai) region |
+| Obligation (DPDPA / Rules) | Plugin | Repository and issues | Cloud Run service (planned) |
+|---|---|---|---|
+| Notice before collection (s.5, Rule 3) | N/A to Indigloo; users' orgs give their own notices | PRIVACY.md in the repository | **Required** before launch |
+| Consent / legitimate use (s.4, 6, 7) | User's org decides; guard forces an explicit choice | N/A | **Required** for any demo input |
+| Purpose limitation and minimisation | Guard blocks by default | Use posts only to answer them; SUPPORT.md asks users not to post personal data | No accounts, no stored inputs, no prompt logging |
+| Reasonable security safeguards (s.8(5), Rule 6) | Built in (see above) | Repository access controls; private vulnerability reporting | See Cloud Run controls below |
+| Breach notification: affected people without delay, Board within 72 hours (s.8(6), Rule 7) | N/A | N/A | Needed: incident runbook |
+| Erasure when purpose is served (s.8(7), Rule 8) | Outputs off by default when personal data allowed | Edit or delete issue content on request where GitHub allows | Short log retention (see below) |
+| Grievance redressal and contact (s.8(10), s.13) | — | SUPPORT.md and PRIVACY.md | Same contact |
+| Children's data: verifiable parental consent (s.9) | — | — | Service intended for adults; collect no personal data |
+| Processor contracts (s.8(2)) | — | GitHub terms | Google Cloud data processing terms |
+| Cross-border transfer (s.16) | User's org; transfers allowed unless a country is restricted by notification | — | Prefer `asia-south1` (Mumbai) region |
 
 ## Cloud Run service: required design (before any launch)
 

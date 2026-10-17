@@ -13,6 +13,8 @@
 
 - **MCP server** (`mcp/server.py`): local stdio only. It opens no network connections, reads no API keys, and writes no files; all ten tools are read-only and marked `readOnlyHint`. Messages are capped at 8 MiB and text inputs at 1,000,000 characters. Repository tools resolve paths inside the workspace roots (client-shared roots, else `MODEL_FINDER_ROOT`, else the working directory) and refuse a filesystem root or home directory. They do not follow symlinks, skip secret-like files (`.env*`, keys, certificates, credential and token files) and dependency/build folders, cap files at 1 MB and 5,000 files, and never return line content from the audit. Drafted eval examples containing detected personal data or secrets are dropped.
 
+- **Build and release supply chain**: GitHub Actions are pinned to commit SHAs and checkout does not persist credentials. Releases publish to PyPI with trusted publishing (no stored PyPI token) and to the MCP Registry with GitHub OIDC. The PyPI package has no dependencies.
+
 ## Reporting a vulnerability
 
 Use the repository's private vulnerability reporting (Security tab). If unavailable, open an issue asking for a private contact channel, without exploit details or secrets.

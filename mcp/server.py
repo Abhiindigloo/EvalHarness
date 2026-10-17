@@ -25,7 +25,9 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-ROOT = Path(__file__).resolve().parent.parent
+_HERE = Path(__file__).resolve().parent
+# Plugin layout: <root>/mcp/server.py next to <root>/skills. PyPI wheel: model_finder_mcp/{server.py,skills}.
+ROOT = _HERE.parent if (_HERE.parent / "skills").is_dir() else _HERE
 PLUGIN_DIR = ROOT  # the installed plugin folder; never treated as the user's project
 EVAL_DIR = ROOT / "skills" / "eval-models" / "scripts"
 ROUTE_DIR = ROOT / "skills" / "route-models" / "scripts"
@@ -40,7 +42,7 @@ import make_routing  # noqa: E402
 import estimate_memory  # noqa: E402
 
 SERVER_NAME = "model_finder_mcp"
-SERVER_VERSION = "1.3.3"
+SERVER_VERSION = "1.3.4"
 PROTOCOL_VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 MAX_MESSAGE_BYTES = 8 * 1024 * 1024
 MAX_TEXT_CHARS = 1_000_000
@@ -853,7 +855,8 @@ def serve(stdin: Any = None, stdout: Any = None) -> int:
             write(reply)
 
 
-def main(argv: List[str]) -> int:
+def main(argv: Optional[List[str]] = None) -> int:
+    argv = sys.argv if argv is None else argv
     if len(argv) > 1 and argv[1] in ("-h", "--help"):
         print(__doc__.strip())
         print("\nTools:")

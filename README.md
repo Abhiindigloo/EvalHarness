@@ -2,6 +2,10 @@
 
 Find the cheapest AI model that passes your own tests, and keep it that way. Published by Indigloo.
 
+<!-- mcp-name: io.github.Abhiindigloo/model-finder -->
+
+**Runs locally.** Model Finder is a set of four Agent Skills plus a local MCP server (`mcp/server.py`, Python 3.9+ standard library, no dependencies). The server makes no network calls, needs no API keys, never writes files and never sends anything to Indigloo. Only the eval script and the router it generates call model providers, with your own keys, when you run them.
+
 | Skill | What it does |
 |---|---|
 | `find-model` | Recommends models across Claude, Gemini, OpenAI, cloud, and local options for your task, budget, and route, including coding subtasks in an IDE. |
@@ -25,7 +29,7 @@ The plugin also ships a **local MCP server** (`mcp/server.py`) with 10 read-only
 
 Every tool returns a readable markdown summary by default and the full result as structured JSON (`response_format: "json"` puts the JSON in the text too). Large results are paginated (`limit`, `offset`, `has_more`, `next_offset`), `modelfinder_audit_models` can filter by provider family or hard-coded IDs, and unknown arguments are rejected with the list of valid ones.
 
-The server never opens a network connection, never reads API keys and never writes files. Only `eval_models.py` calls model providers, with your keys, when you run it.
+The server never opens a network connection, never reads API keys and never writes files. Only `eval_models.py` and the generated `router.py` call model providers, with your keys, when you run them.
 
 Advisory only: nothing is deployed, your active model is never changed, and data goes only to providers you configure and approve. Personal data and secrets are blocked before sending by default; see [DATA-PROTECTION.md](DATA-PROTECTION.md) for how this maps to India's DPDP Act. Scripts use the Python 3.9+ standard library; there is nothing to `pip install`.
 
@@ -37,11 +41,12 @@ Requires Python 3.9+ on your PATH as `python3` (see Windows note below). Nothing
 
 | Client | Command | Skills | MCP tools |
 |---|---|---|---|
-| Claude Code | `/plugin marketplace add Abhiindigloo/EvalHarness` then `/plugin install model-finder@model-finder` | ✅ | ✅ via `mcp/plugin-mcp.json` |
-| Cursor | In Agent chat: `/add-plugin https://github.com/Abhiindigloo/EvalHarness` | ✅ | ✅ via `.cursor-plugin/plugin.json` → `mcp/plugin-mcp.json` |
+| Claude Code | `/plugin marketplace add Abhiindigloo/EvalHarness` then `/plugin install model-finder@model-finder` | ✅ | ✅ via `.mcp.json` |
+| Cursor | Install from the Cursor marketplace or cursor.directory once listed. Until then, clone into `~/.cursor/plugins/local/model-finder` and reload the window | ✅ | ✅ via `mcp.json` or `.cursor-plugin/plugin.json` → `.mcp.json` |
 | Gemini CLI | `gemini extensions install https://github.com/Abhiindigloo/EvalHarness` | ✅ | ✅ via `gemini-extension.json` |
-| OpenAI Codex CLI | `codex plugin marketplace add Abhiindigloo/EvalHarness` then `codex plugin add model-finder@model-finder` | ✅ | ✅ via `mcp.json` (Agent Plugins format). Codex gives the server no workspace, so the agent passes the project path |
+| OpenAI Codex CLI | `codex plugin marketplace add Abhiindigloo/EvalHarness` then `codex plugin add model-finder@model-finder` | ✅ | ✅ via `mcp.json` (Agent Plugins format, runs `./mcp/server.py`). Codex gives the server no workspace, so the agent passes the project path |
 | GitHub Copilot CLI | `copilot plugin marketplace add Abhiindigloo/EvalHarness` then `copilot plugin install model-finder@model-finder` | ✅ | ✅ via `mcp.json` |
+| Any MCP client, from PyPI | `uvx model-finder-mcp` (published by the release workflow; see Releases) | — | ✅ |
 | VS Code, JetBrains, Windsurf, other MCP clients | Add the server to the client's MCP settings (below) | — | ✅ |
 | Other Agent Skills clients | Copy `skills/<name>/` into the client's skills directory | ✅ | — |
 
@@ -98,7 +103,7 @@ Repository tools read only inside the workspace: the roots your client shares ov
 
 ### Windows
 
-If `python3` is not on your PATH, the MCP server will not start. Install Python from python.org (tick "Add python.exe to PATH") and either create a `python3` alias or use the manual setup above with `"command": "py"` and `"args": ["-3", "C:/path/to/EvalHarness/mcp/server.py"]`.
+Codex, Copilot CLI and Cursor start the server as `./mcp/server.py`, which relies on its `#!/usr/bin/env python3` line; on Windows use the manual setup below or `uvx model-finder-mcp`. If `python3` is not on your PATH, the MCP server will not start. Install Python from python.org (tick "Add python.exe to PATH") and either create a `python3` alias or use the manual setup above with `"command": "py"` and `"args": ["-3", "C:/path/to/EvalHarness/mcp/server.py"]`.
 
 ## Quick start: prove a cheaper model works
 
@@ -139,9 +144,12 @@ End-to-end tests run against a local mock of the OpenAI-compatible, Anthropic, a
 ```
 skills/                      shared Agent Skills (single source of truth)
 mcp/server.py                local MCP server (stdio, standard library only)
-mcp/plugin-mcp.json          MCP launch config for Claude Code and Cursor (kept out of the repo root so it never
-                             loads as a project MCP config when you work inside this repo)
-mcp.json                     Agent Plugins MCP launch config (Codex, Copilot CLI); uses ${PLUGIN_ROOT}
+.mcp.json                    MCP launch config for Claude Code and Cursor (${CLAUDE_PLUGIN_ROOT}); disabled as a
+                             project config inside this repo by .claude/settings.json
+mcp.json                     Agent Plugins MCP launch config (Codex, Copilot CLI, Cursor): runs ./mcp/server.py
+server.json, pyproject.toml  MCP Registry entry and PyPI package (model-finder-mcp); pypi/ holds the package marker
+glama.json                   Glama directory ownership
+.github/workflows/           tests on every push; release.yml publishes tags to PyPI and the MCP Registry
 .claude-plugin/              Claude Code (and Copilot CLI) plugin + marketplace manifests
 .codex-plugin/               Codex plugin manifest
 .agents/plugins/             Codex repository marketplace
@@ -153,6 +161,12 @@ PRIVACY.md, TERMS.md, SUPPORT.md  pages the marketplace listings link to
 ```
 
 `skills/eval-models/scripts/mf_core.py` is duplicated in `skills/route-models/scripts/` so each skill works on its own. The test suite fails if the copies differ.
+
+## Releases
+
+1. Bump the version everywhere (`python3 tests/check_release_version.py` lists any field that differs) and add a CHANGELOG entry.
+2. Push a tag `vX.Y.Z`. `release.yml` runs the tests, checks the versions, builds the package, publishes it to PyPI with trusted publishing, then publishes `server.json` to the official MCP Registry.
+3. One-time setup: on pypi.org add a pending trusted publisher for project `model-finder-mcp` (owner `Abhiindigloo`, repository `EvalHarness`, workflow `release.yml`, environment `pypi`), and create the `pypi` environment in the repository settings.
 
 ## Security and license
 

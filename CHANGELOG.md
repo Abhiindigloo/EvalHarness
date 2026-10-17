@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.3.4 (2026-10-17)
+
+Marketplace readiness, after reviewing every listing's requirements.
+
+- **Cursor could not start the MCP server.** With a root `plugin.json`, Cursor reads the Agent Plugins `mcp.json`, and it does not expand `${PLUGIN_ROOT}`; Codex does not expand `${CLAUDE_PLUGIN_ROOT}`. `mcp.json` now runs the plugin-relative `./mcp/server.py` with no variables (the Agent Plugins spec form), and `server.py` is executable. Verified in Codex.
+- The Claude Code / Cursor config is back at the root as `.mcp.json` (Claude's default location; cursor.directory detects MCP servers there). `.claude/settings.json` disables it as a project config inside this repo, which keeps the 1.3.3 fix.
+- **PyPI and MCP Registry**: `pyproject.toml` builds `model-finder-mcp` (no dependencies; console script `model-finder-mcp`, so `uvx model-finder-mcp` works), `server.json` registers `io.github.Abhiindigloo/model-finder`, and the README carries the registry ownership marker. The server finds its scripts in both the plugin and the wheel layout.
+- `release.yml`: on a version tag, test, check every version field, build, publish to PyPI (trusted publishing) and the MCP Registry. All GitHub Actions are pinned to commit SHAs, checkout does not keep credentials.
+- `glama.json` for the Glama directory.
+- OpenAI listing: `shortDescription` shortened to 30 characters or fewer (the directory limit). Cursor manifest logo path made `./`-relative.
+- README: plain statement of what runs locally and what never leaves the machine; correct Cursor install path (there is no `/add-plugin` command); PyPI install row; Windows note for the `./mcp/server.py` launch; release steps. DATA-PROTECTION.md no longer lists a support email (support is through GitHub).
+- Security review: standard library only (the two third-party imports are inside the fake evaluation fixture); bandit found no exploitable issue; a secrets scan found only environment-variable names, test fakes and AWS's documentation example key.
+- Tests: 42 (new: release-version checker, registry and PyPI metadata, server running from the wheel layout).
+
 ## 1.3.3 (2026-10-17)
 
 - Moved the Claude Code / Cursor MCP launch config from `.mcp.json` at the repo root to `mcp/plugin-mcp.json`, referenced from each plugin manifest. A root `.mcp.json` also loads as a project MCP config, so anyone working inside this repo saw a broken extra server ("Missing environment variables: CLAUDE_PLUGIN_ROOT").

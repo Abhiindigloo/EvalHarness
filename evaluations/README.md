@@ -17,7 +17,7 @@ python3 evaluations/run_with_claude_code.py
 
 ## Latest result
 
-10 of 10 correct (Claude Code 2.1.301, 16 October 2026; also 10 of 10 on 2.1.299). Each question took one or two MCP tool calls.
+10 of 10 correct (Claude Code 2.1.301, 17 October 2026; also 10 of 10 on 2.1.299). Each question took one or two MCP tool calls.
 
 If you change the fixture, recompute the answers with the MCP tools before running, and update this file.
-The `.gitignore` excludes `.env` files, so the fixture uses `credentials.json` to exercise secret-file skipping.
+The `.gitignore` excludes `.env` files, so the fixture uses `credentials.json` (kept by a `.gitignore` exception) to exercise secret-file skipping.

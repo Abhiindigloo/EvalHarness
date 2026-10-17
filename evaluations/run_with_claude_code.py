@@ -15,7 +15,7 @@ PLUGIN = str(HERE.parent); FIX = str(HERE / "fixture-repo")
 OUT = sys.argv[1] if len(sys.argv) > 1 else str(HERE / "results")
 os.makedirs(OUT, exist_ok=True)
 pairs = [(q.find("question").text.strip(), q.find("answer").text.strip())
-         for q in ET.parse(str(HERE / "model_finder_eval.xml")).getroot().findall("qa_pair")]
+         for q in ET.parse(str(HERE / "model_finder_eval.xml")).getroot().findall("qa_pair")]  # nosec B314 - this repo's own file
 # Some hosted environments disable plugin MCP servers with this variable; the evaluation needs them.
 env = {k: v for k, v in os.environ.items() if k != "CLAUDE_CODE_SKIP_PLUGIN_MCP_SERVERS"}
 DENY = "Bash,Read,Glob,Grep,Edit,Write,NotebookEdit,WebFetch,WebSearch,Task,Agent,Skill"

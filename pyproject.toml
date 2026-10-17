@@ -1,0 +1,39 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "model-finder-mcp"
+version = "1.3.4"
+description = "Local MCP server: find the cheapest AI model that passes your own tests"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+requires-python = ">=3.9"
+authors = [{ name = "Indigloo" }]
+keywords = ["mcp", "llm", "model-selection", "evaluation", "routing", "claude", "gemini", "openai"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Operating System :: OS Independent",
+  "Topic :: Software Development",
+]
+dependencies = []
+
+[project.urls]
+Homepage = "https://github.com/Abhiindigloo/EvalHarness"
+Issues = "https://github.com/Abhiindigloo/EvalHarness/issues"
+
+[project.scripts]
+model-finder-mcp = "model_finder_mcp.server:main"
+
+# The wheel mirrors the plugin layout inside one package, so the same server.py runs from either.
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+
+[tool.hatch.build.targets.wheel.force-include]
+"pypi/__init__.py" = "model_finder_mcp/__init__.py"
+"mcp/server.py" = "model_finder_mcp/server.py"
+"skills" = "model_finder_mcp/skills"
+
+[tool.hatch.build.targets.sdist]
+include = ["mcp/server.py", "skills/**", "pypi/**", "README.md", "LICENSE", "pyproject.toml"]

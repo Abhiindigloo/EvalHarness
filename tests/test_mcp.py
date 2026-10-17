@@ -475,13 +475,16 @@ class McpPackagingTest(unittest.TestCase):
         return text
 
     def test_launch_configs_point_at_server(self):
-        mcp = json.loads((ROOT / "mcp/plugin-mcp.json").read_text())["mcpServers"]["model-finder"]
+        mcp = json.loads((ROOT / ".mcp.json").read_text())["mcpServers"]["model-finder"]
+        # Claude directory rule: run a file in the plugin with plain arguments and a full ${CLAUDE_PLUGIN_ROOT} path.
         self.assertEqual(mcp["command"], "python3")
+        self.assertEqual(mcp["args"], ["${CLAUDE_PLUGIN_ROOT}/mcp/server.py"])
         self.assertTrue(Path(self._expand(mcp["args"][0], {"${CLAUDE_PLUGIN_ROOT}": str(ROOT)})).is_file())
         for rel in (".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"):
-            self.assertEqual(json.loads((ROOT / rel).read_text())["mcpServers"], "./mcp/plugin-mcp.json", rel)
-        # A root .mcp.json would load as a project MCP config (Claude Code, VS Code) for anyone working in this repo.
-        self.assertFalse((ROOT / ".mcp.json").exists())
+            self.assertEqual(json.loads((ROOT / rel).read_text())["mcpServers"], "./.mcp.json", rel)
+        # The root .mcp.json would also load as a project config for people working inside this repo: keep it off there.
+        settings = json.loads((ROOT / ".claude/settings.json").read_text())
+        self.assertIn("model-finder", settings["disabledMcpjsonServers"])
         gem = json.loads((ROOT / "gemini-extension.json").read_text())["mcpServers"]["model-finder"]
         path = self._expand(gem["args"][0], {"${extensionPath}": str(ROOT), "${/}": os.sep})
         self.assertTrue(Path(path).is_file())
@@ -489,14 +492,19 @@ class McpPackagingTest(unittest.TestCase):
         self.assertFalse((ROOT / "bin").exists(), "a top-level bin/ blocks installation in claude.ai and Cowork")
 
     def test_agent_plugins_mcp_json(self):
-        """A root plugin.json makes Codex load the plugin as Agent Plugins, which reads mcp.json (no dot)."""
+        """A root plugin.json makes Codex, Copilot CLI and Cursor load the Agent Plugins mcp.json (no dot).
+
+        Cursor does not expand ${PLUGIN_ROOT} and Codex does not expand ${CLAUDE_PLUGIN_ROOT}, so the command is
+        a plugin-relative ./ path with no variables, which the Agent Plugins spec resolves against the plugin root.
+        """
         doc = json.loads((ROOT / "mcp.json").read_text())
         self.assertEqual(set(doc), {"$schema", "mcpServers"})
         server = doc["mcpServers"]["model-finder"]
-        self.assertEqual(server["type"], "stdio")
-        self.assertEqual(server["command"], "python3")  # one bare executable token, no placeholders
-        self.assertTrue(Path(self._expand(server["args"][0], {"${PLUGIN_ROOT}": str(ROOT)})).is_file())
-        self.assertNotIn("CLAUDE_PLUGIN_ROOT", json.dumps(doc))
+        self.assertEqual(server, {"type": "stdio", "command": "./mcp/server.py"})
+        self.assertNotIn("${", json.dumps(doc))
+        self.assertTrue(SERVER.read_text().startswith("#!/usr/bin/env python3\n"))
+        if os.name != "nt":
+            self.assertTrue(os.access(SERVER, os.X_OK), "mcp/server.py must be executable (git mode 100755)")
         interface = json.loads((ROOT / "plugin.json").read_text())["extensions"]["com.openai"]["interface"]
         for rel in [interface["logo"], interface["composerIcon"],
                     *json.loads((ROOT / ".codex-plugin/plugin.json").read_text())["interface"].values()]:
@@ -513,9 +521,12 @@ class McpPackagingTest(unittest.TestCase):
                 server_version = line.split('"')[1]
         versions = {json.loads((ROOT / rel).read_text())["version"] for rel in (
             ".claude-plugin/plugin.json", ".codex-plugin/plugin.json", ".cursor-plugin/plugin.json",
-            "gemini-extension.json", "plugin.json")}
+            "gemini-extension.json", "plugin.json", "server.json")}
         versions.add(json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())["plugins"][0]["version"])
         self.assertEqual(versions, {server_version})
+        checker = subprocess.run([sys.executable, str(ROOT / "tests/check_release_version.py"), server_version],
+                                 capture_output=True, text=True)
+        self.assertEqual(checker.returncode, 0, checker.stderr)
         self.assertIn(f"## {server_version}", (ROOT / "CHANGELOG.md").read_text())
         self.assertTrue((ROOT / "LICENSE").read_text().startswith("MIT License"))
         claude = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
@@ -542,10 +553,45 @@ class McpPackagingTest(unittest.TestCase):
             self.assertTrue(link.startswith(repo), link)
             self.assertTrue((ROOT / link[len(repo):]).is_file(), f"{link} points to a missing file")
 
+    def test_registry_and_pypi_metadata(self):
+        """server.json (MCP Registry), pyproject.toml (PyPI) and the README ownership marker agree."""
+        reg = json.loads((ROOT / "server.json").read_text())
+        self.assertEqual(reg["name"], "io.github.Abhiindigloo/model-finder")
+        self.assertLessEqual(len(reg["description"]), 100)
+        pkg = reg["packages"][0]
+        self.assertEqual((pkg["registryType"], pkg["identifier"], pkg["transport"]["type"]),
+                         ("pypi", "model-finder-mcp", "stdio"))
+        self.assertIn(f"mcp-name: {reg['name']}", (ROOT / "README.md").read_text())
+        pyproject = (ROOT / "pyproject.toml").read_text()
+        self.assertIn('name = "model-finder-mcp"', pyproject)
+        self.assertIn('model-finder-mcp = "model_finder_mcp.server:main"', pyproject)
+        self.assertIn("dependencies = []", pyproject)
+        glama = json.loads((ROOT / "glama.json").read_text())
+        self.assertEqual(glama["maintainers"], ["Abhiindigloo"])
+
+    def test_server_runs_from_the_wheel_layout(self):
+        """The PyPI wheel puts server.py and skills/ side by side in model_finder_mcp/; the server must find them."""
+        tmp = Path(tempfile.mkdtemp())
+        try:
+            pkg = tmp / "model_finder_mcp"
+            pkg.mkdir()
+            shutil.copy(SERVER, pkg / "server.py")
+            shutil.copytree(SKILLS, pkg / "skills")
+            (pkg / "__init__.py").write_text("")
+            out = subprocess.run([sys.executable, "-I", "-c",
+                                  "import sys; sys.path.insert(0, sys.argv[1]); "
+                                  "from model_finder_mcp.server import main; sys.argv = ['x', '--version']; "
+                                  "raise SystemExit(main())", str(tmp)],
+                                 capture_output=True, text=True, timeout=30)
+            self.assertEqual(out.returncode, 0, out.stderr)
+            self.assertIn("model_finder_mcp", out.stdout)
+        finally:
+            shutil.rmtree(tmp, ignore_errors=True)
+
     def test_every_repo_link_uses_the_real_repo_name(self):
         """The GitHub repo is Abhiindigloo/EvalHarness; a misspelt name breaks every install command."""
         import re
-        pattern = re.compile(r"abhiindigloo/([A-Za-z0-9_.-]+)", re.I)
+        pattern = re.compile(r"(?<!io\.github\.)abhiindigloo/([A-Za-z0-9_.-]+)", re.I)  # registry names are io.github.<owner>/<server>
         for path in ROOT.rglob("*"):
             if path.is_file() and ".git" not in path.parts and "__pycache__" not in path.parts \
                     and path.suffix in (".md", ".json", ".py") and path.name != "CHANGELOG.md" and path != Path(__file__):

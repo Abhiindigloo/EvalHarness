@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Abhiindigloo/model-finder",
+  "title": "Model Finder",
+  "description": "Find the cheapest AI model that passes your tests: audit repo models, build evals, routing, sizing",
+  "repository": {
+    "url": "https://github.com/Abhiindigloo/EvalHarness",
+    "source": "github"
+  },
+  "version": "1.3.4",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "model-finder-mcp",
+      "version": "1.3.4",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
