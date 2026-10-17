@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.Abhiindigloo/model-finder",
+  "name": "co.indigloo/model-finder",
   "title": "Model Finder",
   "description": "Find the cheapest AI model that passes your tests: audit repo models, build evals, routing, sizing",
   "repository": {

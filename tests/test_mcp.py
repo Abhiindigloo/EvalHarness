@@ -579,7 +579,7 @@ class McpPackagingTest(unittest.TestCase):
     def test_registry_and_pypi_metadata(self):
         """server.json (MCP Registry), pyproject.toml (PyPI) and the README ownership marker agree."""
         reg = json.loads((ROOT / "server.json").read_text())
-        self.assertEqual(reg["name"], "io.github.Abhiindigloo/model-finder")
+        self.assertEqual(reg["name"], "co.indigloo/model-finder")  # verified by a DNS TXT record on indigloo.co
         self.assertLessEqual(len(reg["description"]), 100)
         pkg = reg["packages"][0]
         self.assertEqual((pkg["registryType"], pkg["identifier"], pkg["transport"]["type"]),
