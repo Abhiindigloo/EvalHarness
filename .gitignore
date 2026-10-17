@@ -15,3 +15,6 @@ venv/
 *.pfx
 credentials.json
 secrets.json
+
+# Decoy for the eval fixture: proves secret-looking files are skipped (contains no secret)
+!evaluations/fixture-repo/credentials.json

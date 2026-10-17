@@ -37,8 +37,8 @@ Requires Python 3.9+ on your PATH as `python3` (see Windows note below). Nothing
 
 | Client | Command | Skills | MCP tools |
 |---|---|---|---|
-| Claude Code | `/plugin marketplace add Abhiindigloo/EvalHarness` then `/plugin install model-finder@model-finder` | ✅ | ✅ via `.mcp.json` |
-| Cursor | In Agent chat: `/add-plugin https://github.com/Abhiindigloo/EvalHarness` | ✅ | ✅ via `.cursor-plugin/plugin.json` → `.mcp.json` |
+| Claude Code | `/plugin marketplace add Abhiindigloo/EvalHarness` then `/plugin install model-finder@model-finder` | ✅ | ✅ via `mcp/plugin-mcp.json` |
+| Cursor | In Agent chat: `/add-plugin https://github.com/Abhiindigloo/EvalHarness` | ✅ | ✅ via `.cursor-plugin/plugin.json` → `mcp/plugin-mcp.json` |
 | Gemini CLI | `gemini extensions install https://github.com/Abhiindigloo/EvalHarness` | ✅ | ✅ via `gemini-extension.json` |
 | OpenAI Codex CLI | `codex plugin marketplace add Abhiindigloo/EvalHarness` then `codex plugin add model-finder@model-finder` | ✅ | ✅ via `mcp.json` (Agent Plugins format). Codex gives the server no workspace, so the agent passes the project path |
 | GitHub Copilot CLI | `copilot plugin marketplace add Abhiindigloo/EvalHarness` then `copilot plugin install model-finder@model-finder` | ✅ | ✅ via `mcp.json` |
@@ -139,7 +139,8 @@ End-to-end tests run against a local mock of the OpenAI-compatible, Anthropic, a
 ```
 skills/                      shared Agent Skills (single source of truth)
 mcp/server.py                local MCP server (stdio, standard library only)
-.mcp.json                    MCP launch config (Claude Code; Cursor points to it)
+mcp/plugin-mcp.json          MCP launch config for Claude Code and Cursor (kept out of the repo root so it never
+                             loads as a project MCP config when you work inside this repo)
 mcp.json                     Agent Plugins MCP launch config (Codex, Copilot CLI); uses ${PLUGIN_ROOT}
 .claude-plugin/              Claude Code (and Copilot CLI) plugin + marketplace manifests
 .codex-plugin/               Codex plugin manifest

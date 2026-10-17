@@ -40,7 +40,7 @@ import make_routing  # noqa: E402
 import estimate_memory  # noqa: E402
 
 SERVER_NAME = "model_finder_mcp"
-SERVER_VERSION = "1.3.2"
+SERVER_VERSION = "1.3.3"
 PROTOCOL_VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 MAX_MESSAGE_BYTES = 8 * 1024 * 1024
 MAX_TEXT_CHARS = 1_000_000

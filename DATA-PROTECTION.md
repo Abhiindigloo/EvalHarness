@@ -2,7 +2,7 @@
 
 How Model Finder handles personal data, mapped to India's Digital Personal Data Protection Act 2023 (DPDPA) and DPDP Rules 2025.
 
-> This is an engineering record, not legal advice. Have counsel confirm the role analysis, notices, and open items below before launch. Last reviewed: 16 October 2026 (v1.3.2).
+> This is an engineering record, not legal advice. Have counsel confirm the role analysis, notices, and open items below before launch. Last reviewed: 16 October 2026 (v1.3.3).
 
 ## Regulatory status
 

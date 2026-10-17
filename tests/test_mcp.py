@@ -475,11 +475,13 @@ class McpPackagingTest(unittest.TestCase):
         return text
 
     def test_launch_configs_point_at_server(self):
-        mcp = json.loads((ROOT / ".mcp.json").read_text())["mcpServers"]["model-finder"]
+        mcp = json.loads((ROOT / "mcp/plugin-mcp.json").read_text())["mcpServers"]["model-finder"]
         self.assertEqual(mcp["command"], "python3")
         self.assertTrue(Path(self._expand(mcp["args"][0], {"${CLAUDE_PLUGIN_ROOT}": str(ROOT)})).is_file())
-        for rel in (".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"):
-            self.assertEqual(json.loads((ROOT / rel).read_text())["mcpServers"], "./.mcp.json", rel)
+        for rel in (".claude-plugin/plugin.json", ".cursor-plugin/plugin.json", ".codex-plugin/plugin.json"):
+            self.assertEqual(json.loads((ROOT / rel).read_text())["mcpServers"], "./mcp/plugin-mcp.json", rel)
+        # A root .mcp.json would load as a project MCP config (Claude Code, VS Code) for anyone working in this repo.
+        self.assertFalse((ROOT / ".mcp.json").exists())
         gem = json.loads((ROOT / "gemini-extension.json").read_text())["mcpServers"]["model-finder"]
         path = self._expand(gem["args"][0], {"${extensionPath}": str(ROOT), "${/}": os.sep})
         self.assertTrue(Path(path).is_file())

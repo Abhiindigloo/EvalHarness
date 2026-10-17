@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.3 (2026-10-17)
+
+- Moved the Claude Code / Cursor MCP launch config from `.mcp.json` at the repo root to `mcp/plugin-mcp.json`, referenced from each plugin manifest. A root `.mcp.json` also loads as a project MCP config, so anyone working inside this repo saw a broken extra server ("Missing environment variables: CLAUDE_PLUGIN_ROOT").
+- `.gitignore` now keeps `evaluations/fixture-repo/credentials.json`, the decoy (no secret, just `{"model": "o3"}`) that proves secret-looking files are skipped. It was excluded by the `credentials.json` rule, so the evaluation was not testing that.
+
 ## 1.3.2 (2026-10-16)
 
 Found by installing the plugin in each host CLI ("test all").
