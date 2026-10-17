@@ -1,35 +1,60 @@
-# Terms of use
+# Terms of Use
 
-**Model Finder** (this repository), published by Indigloo Softwares Private Limited.
-Last updated: 16 October 2026. Draft for legal review before marketplace submission.
+**Model Finder** — published by Indigloo Softwares Private Limited ("Indigloo", "we"), a company incorporated in India.
+Effective date: 17 October 2026.
 
-## License
+By installing or using Model Finder you agree to these terms. If you use it on behalf of an organisation, you agree for that organisation.
 
-The software is licensed under the [MIT License](LICENSE). It is provided "as is", without warranty of any kind, as the license states.
+## 1. The software and its license
 
-## Advice, not guarantees
+Model Finder is open-source software licensed under the [MIT License](LICENSE). The MIT License governs your rights to use, copy, modify and distribute the code. These terms add how the software should be used and what Indigloo is and is not responsible for. If these terms and the MIT License conflict about your rights in the code, the MIT License prevails.
 
-Model Finder suggests models, estimates costs and memory, and generates configurations. Its outputs depend on the information available to it and on your own tests.
+## 2. What Model Finder does
 
-- Verify model IDs, prices, terms and availability on each provider's official pages before relying on them. Prices and models change.
-- Eval results reflect your examples and checks only. A small sample is a smoke test, not proof of quality.
-- Memory estimates are not a guarantee that a model fits or runs well on your hardware.
-- Generated routing and LiteLLM configurations are not deployed by Model Finder. Review them before use.
+Model Finder helps you choose AI models. It recommends candidates, audits the models a repository uses, drafts and runs evaluations with your own keys, generates routing configurations, and estimates cost and memory. It is advisory:
 
-## Your responsibilities
+- It never changes your active model, deploys anything or starts a service.
+- The local MCP server makes no network connections and writes no files.
+- Indigloo does not operate a hosted service, accounts or paid plans for Model Finder. The software is free.
 
-- You choose which providers to call and pay their charges. Eval runs and routing use your own API keys and accounts.
-- You are responsible for the data you send to providers, for having the right to send it, and for complying with the laws and provider terms that apply to you.
-- Keep API keys in environment variables or a secret manager. Do not put them in configs, prompts or issues.
+## 3. Outputs are estimates, not guarantees
 
-## No paid service
+- Recommendations, prices, model IDs and availability can be wrong or out of date. Verify them on each provider's official pages before relying on them.
+- Evaluation results reflect only your examples and checks. A small sample is a smoke test, not proof of quality.
+- Memory estimates do not guarantee that a model fits or runs well on your hardware.
+- Generated routing and LiteLLM configurations must be reviewed and tested by you before use.
 
-There are no paid plans, accounts or checkout. Indigloo does not operate a hosted service for this plugin.
+## 4. Your responsibilities
 
-## Trademarks
+- **Providers and costs.** You choose which providers to call. Eval runs and routing use your own API keys and accounts, and you pay those providers' charges.
+- **Data.** You are responsible for the data you send to providers, for having the right to send it, and for complying with the laws, contracts and provider terms that apply to you, including data protection law.
+- **Keys.** Keep API keys in environment variables or a secret manager. Never put them in configs, prompts, issues or pull requests.
+- **Acceptable use.** Do not use Model Finder to break the law, to infringe others' rights, to violate the usage policies of the AI assistant or model providers you use, or to attempt to bypass their safety measures.
 
-Claude, Gemini, GPT and other model and product names belong to their owners. Their use here identifies the models; it does not imply endorsement.
+## 5. Third-party services
 
-## Contact
+Model Finder works with AI assistants, IDEs, model providers, marketplaces and package registries that Indigloo does not control. Their terms and privacy policies apply to your use of them. Indigloo is not responsible for their services, availability, pricing or outputs.
 
-See [SUPPORT.md](SUPPORT.md).
+## 6. No warranty
+
+The software is provided "as is" and "as available", without warranty of any kind, express or implied, including fitness for a particular purpose, accuracy and non-infringement, as stated in the MIT License.
+
+## 7. Limitation of liability
+
+To the fullest extent permitted by law, Indigloo and the contributors are not liable for any indirect, incidental, special, consequential or punitive damages, or for any loss of profits, revenue, data or provider charges, arising from your use of the software or its outputs. Because the software is free, Indigloo's total liability for any claim relating to it is limited to zero rupees, except where the law does not allow that limit.
+
+## 8. Trademarks
+
+"Model Finder" and "Indigloo" are names used by Indigloo. Claude, Gemini, GPT, Codex, Cursor, Copilot and other product and model names belong to their owners. They are used only to identify those products and do not imply endorsement or partnership.
+
+## 9. Changes
+
+We may update these terms. Changes are recorded in this file's history on GitHub, and the effective date above shows the current version. Continuing to use a newer version of the software means you accept the terms that come with it.
+
+## 10. Governing law
+
+These terms are governed by the laws of India. Courts in Mumbai, Maharashtra have jurisdiction, subject to any mandatory rights you have under the law where you live.
+
+## 11. Contact
+
+See [SUPPORT.md](SUPPORT.md). For security issues, see [SECURITY.md](SECURITY.md).

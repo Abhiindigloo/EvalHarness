@@ -42,7 +42,7 @@ import make_routing  # noqa: E402
 import estimate_memory  # noqa: E402
 
 SERVER_NAME = "model_finder_mcp"
-SERVER_VERSION = "1.3.4"
+SERVER_VERSION = "1.3.5"
 PROTOCOL_VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 MAX_MESSAGE_BYTES = 8 * 1024 * 1024
 MAX_TEXT_CHARS = 1_000_000
@@ -758,9 +758,12 @@ class Server:
             result = tool["handler"](args)
         except (ToolError, core.ConfigError, ValueError, TypeError) as exc:
             return self._error_result(str(exc))
-        except Exception:  # pragma: no cover - defensive
-            traceback.print_exc(file=sys.stderr)
-            return self._error_result("Internal error in Model Finder; see the server log.")
+        except Exception as exc:  # pragma: no cover - defensive
+            # Log the error type and code location only: exception messages can echo tool arguments.
+            frame = traceback.extract_tb(exc.__traceback__)[-1] if exc.__traceback__ else None
+            where = f"{Path(frame.filename).name}:{frame.lineno}" if frame else "unknown"
+            print(f"model_finder_mcp: internal error in {name}: {type(exc).__name__} at {where}", file=sys.stderr)
+            return self._error_result("Internal error in Model Finder; see the server log for the error type.")
         text = tool["render"](result) if fmt == "markdown" else json.dumps(result, indent=2)
         payload: Dict[str, Any] = {"content": [{"type": "text", "text": text}], "isError": False}
         if self.protocol >= "2025-06-18":

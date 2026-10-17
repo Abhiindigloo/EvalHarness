@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.5 (2026-10-17)
+
+Policies written for marketplace review (Anthropic Software Directory Policy §3A–3C and §1D, OpenAI listing URLs).
+
+- **PRIVACY.md**: full privacy policy — publisher, scope, per-component table of what is processed, where it goes and what Indigloo retains (nothing), MCP data minimisation, personal-data safeguards, local files, GitHub and registry data, third-party providers, the user organisation's DPDP role, security, children, rights and grievances, changes, contact.
+- **TERMS.md**: terms of use — relationship to the MIT License, advisory nature, user responsibilities and acceptable use, third-party services, no warranty, limitation of liability, trademarks, changes, governing law (India).
+- **SECURITY.md**: security policy — supported versions, private reporting steps, response targets, coordinated disclosure, safe harbour, scope, and the security design.
+- MCP server: an unexpected internal error now logs only the error type and code location, never the exception message, which could echo tool arguments. New tests cover this and the policy contents.
+
 ## 1.3.4 (2026-10-17)
 
 Marketplace readiness, after reviewing every listing's requirements.

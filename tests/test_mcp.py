@@ -264,6 +264,29 @@ class McpProtocolTest(unittest.TestCase):
         finally:
             c.close()
 
+    def test_internal_error_never_logs_arguments(self):
+        """Directory policy: no extraneous data collection, even for logging. Only the error type is logged."""
+        code = ("import sys, importlib.util, json\n"
+                "spec = importlib.util.spec_from_file_location('srv', sys.argv[1])\n"
+                "m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)\n"
+                "def boom(args): raise RuntimeError('LEAK ' + json.dumps(args))\n"
+                "[t.update(handler=boom) for t in m.TOOLS if t['name'] == 'modelfinder_scan_sensitive_data']\n"
+                "sys.exit(m.main(['server']))\n")
+        msgs = [{"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                 "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "t", "version": "0"}}},
+                {"jsonrpc": "2.0", "method": "notifications/initialized"},
+                {"jsonrpc": "2.0", "id": 2, "method": "tools/call",
+                 "params": {"name": "modelfinder_scan_sensitive_data", "arguments": {"text": "secret-marker-xyz"}}}]
+        proc = subprocess.run([sys.executable, "-I", "-c", code, str(SERVER)], cwd=str(self.repo),
+                              input="\n".join(json.dumps(m) for m in msgs) + "\n",
+                              capture_output=True, text=True, timeout=30)
+        self.assertIn("RuntimeError", proc.stderr)
+        for stream in (proc.stdout, proc.stderr):
+            self.assertNotIn("secret-marker-xyz", stream)
+            self.assertNotIn("LEAK", stream)
+        reply = [json.loads(line) for line in proc.stdout.splitlines() if line.strip()][-1]["result"]
+        self.assertTrue(reply["isError"])
+
     def test_every_tool(self):
         c = StdioClient(self.repo)
         try:
@@ -587,6 +610,23 @@ class McpPackagingTest(unittest.TestCase):
             self.assertIn("model_finder_mcp", out.stdout)
         finally:
             shutil.rmtree(tmp, ignore_errors=True)
+
+    def test_policies_are_final_and_complete(self):
+        """Listing pages: privacy (collection, use, retention), terms, security reporting; no draft markers."""
+        privacy = (ROOT / "PRIVACY.md").read_text()
+        terms = (ROOT / "TERMS.md").read_text()
+        security = (ROOT / "SECURITY.md").read_text()
+        for doc, name in ((privacy, "PRIVACY"), (terms, "TERMS")):
+            self.assertNotIn("Draft", doc, name)
+            self.assertIn("Effective date:", doc, name)
+            self.assertIn("Indigloo Softwares Private Limited", doc, name)
+        for heading in ("What the software processes", "What Indigloo collects", "Children", "Contact", "Changes"):
+            self.assertIn(heading, privacy)
+        self.assertIn("Retained by Indigloo", privacy)
+        for heading in ("No warranty", "Limitation of liability", "Governing law"):
+            self.assertIn(heading, terms)
+        for heading in ("Supported versions", "Reporting a vulnerability", "In scope", "Security design"):
+            self.assertIn(heading, security)
 
     def test_every_repo_link_uses_the_real_repo_name(self):
         """The GitHub repo is Abhiindigloo/EvalHarness; a misspelt name breaks every install command."""
