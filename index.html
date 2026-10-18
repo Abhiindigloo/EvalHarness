@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model Finder · Indigloo</title>
+<meta name="description" content="Find the cheapest AI model that passes your own tests. Open source, runs locally, works in Claude Code, Cursor, Codex, Copilot and Gemini CLI.">
+<meta property="og:title" content="Model Finder">
+<meta property="og:description" content="Find the cheapest AI model that passes your own tests. Runs locally, with your keys.">
+<meta property="og:image" content="https://modelfinder.indigloo.co/img/og.png">
+<meta property="og:url" content="https://modelfinder.indigloo.co/">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" type="image/png" href="img/logo.png">
+<link rel="preload" href="fonts/InstrumentSerif-Regular.woff2" as="font" type="font/woff2" crossorigin>
+<style>
+@font-face{font-family:"Instrument Serif";src:url(fonts/InstrumentSerif-Regular.woff2) format("woff2");font-display:swap}
+@font-face{font-family:"Instrument Serif";font-style:italic;src:url(fonts/InstrumentSerif-Italic.woff2) format("woff2");font-display:swap}
+@font-face{font-family:"Instrument Sans";src:url(fonts/InstrumentSans-Regular.woff2) format("woff2");font-weight:400;font-display:swap}
+@font-face{font-family:"Instrument Sans";src:url(fonts/InstrumentSans-Bold.woff2) format("woff2");font-weight:700;font-display:swap}
+@font-face{font-family:"Geist Mono";src:url(fonts/GeistMono-Regular.woff2) format("woff2");font-display:swap}
+
+:root{
+  --paper:#f3f0e8; --ink:#1c1b19; --graphite:#7e7a72; --faint:#d6d1c6; --signal:#cd462a; --wash:#ebe6da;
+  --serif:"Instrument Serif",Georgia,serif; --sans:"Instrument Sans",system-ui,sans-serif; --mono:"Geist Mono",ui-monospace,monospace;
+  --measure:64ch; --gutter:clamp(16px,5vw,64px);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#141412; --ink:#ece7dc; --graphite:#9a958b; --faint:#34332f; --signal:#e25c3c; --wash:#1d1c19;}}
+:root[data-theme="dark"]{--paper:#141412; --ink:#ece7dc; --graphite:#9a958b; --faint:#34332f; --signal:#e25c3c; --wash:#1d1c19;}
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:400 17px/1.6 var(--sans);overflow-x:hidden}
+a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}
+a:hover{color:var(--signal)}
+:focus-visible{outline:2px solid var(--signal);outline-offset:3px;border-radius:2px}
+.wrap{max-width:1180px;margin:0 auto;padding:0 var(--gutter)}
+
+header.top{display:flex;align-items:center;justify-content:space-between;padding:22px 0}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-weight:700;letter-spacing:.01em}
+.brand img{width:28px;height:28px;border-radius:6px}
+nav.links{display:flex;gap:22px;font-size:15px}
+nav.links a{text-decoration:none;color:var(--graphite)}
+nav.links a:hover{color:var(--ink)}
+
+/* hero */
+.hero{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(24px,4vw,64px);align-items:center;padding:clamp(24px,6vw,72px) 0 clamp(40px,7vw,96px)}
+h1{font:400 clamp(64px,10.5vw,148px)/.86 var(--serif);letter-spacing:-.02em;margin:0 0 28px}
+h1 span{display:block}
+.lede{font:400 clamp(22px,2.4vw,30px)/1.25 var(--serif);font-style:italic;color:var(--graphite);margin:0 0 22px;max-width:22ch}
+.sub{max-width:40ch;margin:0 0 30px}
+.actions{display:flex;flex-wrap:wrap;gap:12px}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 18px;border:1px solid var(--ink);border-radius:999px;text-decoration:none;font-weight:700;font-size:15px}
+.btn.primary{background:var(--ink);color:var(--paper)}
+.btn.primary:hover{background:var(--signal);border-color:var(--signal);color:#fff}
+.btn:hover{border-color:var(--signal)}
+
+/* instrument */
+figure.instrument{margin:0}
+.instrument svg{width:100%;height:auto;display:block;overflow:visible}
+.instrument text{font-family:var(--mono);font-size:10.5px;fill:var(--graphite)}
+.instrument .guide{stroke:var(--faint);stroke-width:1}
+.instrument .axis{stroke:var(--ink);stroke-width:1.2}
+.instrument .dot{fill:var(--ink);transform-box:fill-box;transform-origin:center}
+.instrument .ring{fill:none;stroke:var(--graphite);stroke-width:1.5;transform-box:fill-box;transform-origin:center}
+.instrument .col.chosen .dot{fill:var(--signal)}
+.instrument .col.chosen .ring{stroke:var(--signal)}
+.instrument .bar{stroke:var(--graphite);stroke-width:4;stroke-linecap:butt}
+.instrument .bar.pass{stroke:var(--ink)}
+.instrument .bar.chosen{stroke:var(--signal)}
+.instrument .thresh{stroke:var(--graphite);stroke-dasharray:4 4;stroke-width:1}
+.instrument .bracket{fill:none;stroke:var(--signal);stroke-width:1.3}
+.instrument .scan{stroke:var(--signal);stroke-width:1;opacity:0}
+.instrument text.pick{fill:var(--signal);font-size:11.5px}
+.dot,.ring,.bar,.col *{transition:fill .5s ease,stroke .5s ease}
+figcaption{display:flex;flex-wrap:wrap;align-items:center;gap:14px 22px;margin-top:18px;font-size:15px}
+.control{display:flex;align-items:center;gap:12px}
+.control label{color:var(--graphite)}
+.control output{font-family:var(--mono);font-size:14px;min-width:3.5ch}
+input[type=range]{accent-color:var(--signal);width:140px}
+#reading{margin:0;color:var(--ink);flex:1 1 260px;min-height:4.8em}
+#reading b{color:var(--signal);font-weight:700}
+.note{font-size:13px;color:var(--graphite);margin-top:6px}
+
+/* sections */
+section{padding:clamp(48px,8vw,104px) 0;border-top:1px solid var(--faint)}
+h2{font:400 clamp(36px,5vw,60px)/1 var(--serif);letter-spacing:-.01em;margin:0 0 18px;max-width:18ch}
+.intro{max-width:var(--measure);color:var(--graphite);margin:0 0 40px}
+
+.steps{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(20px,3vw,40px);counter-reset:s}
+.steps li{counter-increment:s;padding-top:18px;border-top:2px solid var(--ink)}
+.steps li::before{content:counter(s);font:400 44px/1 var(--serif);color:var(--signal);display:block;margin-bottom:12px}
+.steps h3,.aside h3{font:700 19px/1.3 var(--sans);margin:0 0 8px}
+.steps p,.aside p{margin:0;color:var(--graphite);font-size:16px}
+.aside{margin-top:40px;padding:22px 24px;background:var(--wash);border-radius:14px;max-width:var(--measure)}
+
+
+/* routing demo */
+.route{margin-top:clamp(36px,5vw,56px)}
+.route svg{width:100%;height:auto;display:block;overflow:visible}
+.route .wire{stroke:var(--faint);stroke-width:2}
+.route .station{fill:var(--paper);stroke:var(--ink);stroke-width:1.5}
+.route .station.lit{stroke:var(--signal)}
+.route .mark{fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.route .ok{stroke:var(--ink)}
+.route .no{stroke:var(--signal)}
+.route .packet{fill:var(--signal)}
+.route text{font-family:var(--sans);font-size:15px;fill:var(--ink)}
+.route text.sub{fill:var(--graphite);font-size:13px}
+.route svg.narrow text{font-size:34px}
+.route-caption{margin:14px 0 0;color:var(--graphite);min-height:3.2em;max-width:var(--measure);transition:opacity .35s ease}
+.route-caption b{color:var(--ink)}
+
+/* install */
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}
+.tabs button{font:700 14px var(--sans);color:var(--ink);background:none;border:1px solid var(--faint);border-radius:999px;padding:9px 15px;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.tabs button:hover{border-color:var(--ink)}
+.panel{max-width:860px}
+.panel[hidden]{display:none}
+.panel p{color:var(--graphite);margin:14px 0 0;max-width:var(--measure);font-size:15.5px}
+pre{position:relative;margin:0;background:var(--wash);border-radius:12px;padding:18px 92px 18px 20px;overflow-x:auto;font:14px/1.7 var(--mono);color:var(--ink)}
+pre .c{color:var(--graphite)}
+.copy{position:absolute;top:12px;right:12px;font:700 13px var(--sans);background:var(--paper);color:var(--ink);border:1px solid var(--faint);border-radius:999px;padding:6px 12px;cursor:pointer}
+.copy:hover{border-color:var(--ink)}
+
+/* privacy */
+.facts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 clamp(24px,4vw,64px);max-width:980px;margin:0;padding:0}
+.facts div{padding:18px 0;border-bottom:1px solid var(--faint)}
+.facts dt{font-weight:700;margin-bottom:4px}
+.facts dd{margin:0;color:var(--graphite);font-size:16px}
+
+/* listings */
+.where{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:clamp(16px,2vw,28px)}
+.where a{display:block;text-decoration:none;padding:20px 0 0;border-top:1px solid var(--ink)}
+.where strong{display:block;font:400 26px/1.15 var(--serif);margin-bottom:6px}
+.where span{color:var(--graphite);font-size:15px}
+.where a:hover strong{color:var(--signal)}
+
+footer{border-top:1px solid var(--faint);padding:36px 0 48px;color:var(--graphite);font-size:14.5px}
+footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:16px}
+footer nav{display:flex;flex-wrap:wrap;gap:18px}
+
+@media (max-width:900px){
+  .hero{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}
+  .where{grid-template-columns:repeat(2,minmax(0,1fr))}
+  nav.links a.hide-sm{display:none}
+}
+@media (max-width:560px){
+  .facts{grid-template-columns:1fr}
+  .where{grid-template-columns:1fr}
+  pre{padding-right:20px;padding-top:52px}
+  body{font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+  <a class="brand" href="/"><img src="img/logo.png" alt="" width="28" height="28">Model Finder</a>
+  <nav class="links" aria-label="Main">
+    <a href="#how" class="hide-sm">How it works</a>
+    <a href="#install">Install</a>
+    <a href="#privacy" class="hide-sm">Privacy</a>
+    <a href="https://github.com/Abhiindigloo/EvalHarness">GitHub</a>
+  </nav>
+</header>
+
+<main>
+<div class="hero">
+  <div>
+    <h1><span>Model</span><span>Finder</span></h1>
+    <p class="lede">The cheapest AI model that passes your own tests.</p>
+    <p class="sub">Audit the models your code uses, test candidates on your real prompts, and get a cheapest-first routing setup. It runs on your machine, with your keys.</p>
+    <div class="actions">
+      <a class="btn primary" href="#install">Install</a>
+      <a class="btn" href="https://github.com/Abhiindigloo/EvalHarness">View the source</a>
+    </div>
+  </div>
+
+  <figure class="instrument" aria-labelledby="reading">
+    <svg id="field" viewBox="0 0 640 430" role="img" aria-label="Sixteen candidate models sorted by cost, each tested on ten examples. Filled dots are passes, rings are failures. The highlighted column is the cheapest model that meets the pass threshold."></svg>
+    <figcaption>
+      <div class="control">
+        <label for="threshold">Pass threshold</label>
+        <input id="threshold" type="range" min="50" max="100" step="10" value="90">
+        <output id="tval" for="threshold">90%</output>
+      </div>
+      <p id="reading" aria-live="polite"></p>
+    </figcaption>
+    <p class="note">Illustrative run: 16 candidates sorted by cost, 10 of your examples each.</p>
+  </figure>
+</div>
+
+<section id="how">
+  <h2>From guesswork to evidence</h2>
+  <p class="intro">Most teams pick a model once and keep paying for it. Model Finder measures what each candidate costs per passing answer on your own work, then hands you the cheapest one that clears your bar.</p>
+  <ol class="steps">
+    <li><h3>Audit</h3><p>Finds every AI model and SDK your repository calls, and flags hard-coded model IDs that will age badly.</p></li>
+    <li><h3>Evaluate</h3><p>Drafts eval examples from your prompt files, then runs every candidate on them with your keys. You see pass rate, latency and cost per passing answer.</p></li>
+    <li><h3>Route</h3><p>Turns the results into a cheapest-first chain that falls back to a stronger model when a reply fails your checks, with a ready LiteLLM config.</p></li>
+  </ol>
+  <div class="route">
+    <svg id="route" viewBox="0 0 960 170" role="img" aria-label="Routing in action: a request goes to the cheapest model that passes. If its reply fails one of your checks, the request moves to the fallback model."></svg>
+    <p class="route-caption" id="route-caption">Every request starts at the cheapest model that passed your evaluation.</p>
+  </div>
+  <div class="aside">
+    <h3>Running models locally?</h3>
+    <p>Model Finder also estimates memory for weights and KV cache at your context length, and tells you whether an open-weight model fits your GPU.</p>
+  </div>
+</section>
+
+<section id="install">
+  <h2>Install in your tool</h2>
+  <p class="intro">Needs Python 3.9 or later. No packages to install, no account, nothing to sign up for.</p>
+  <div class="tabs" role="tablist" aria-label="Choose your tool">
+    <button role="tab" aria-selected="true" aria-controls="p-claude" id="t-claude">Claude Code</button>
+    <button role="tab" aria-selected="false" aria-controls="p-cursor" id="t-cursor" tabindex="-1">Cursor</button>
+    <button role="tab" aria-selected="false" aria-controls="p-codex" id="t-codex" tabindex="-1">Codex CLI</button>
+    <button role="tab" aria-selected="false" aria-controls="p-copilot" id="t-copilot" tabindex="-1">Copilot CLI</button>
+    <button role="tab" aria-selected="false" aria-controls="p-gemini" id="t-gemini" tabindex="-1">Gemini CLI</button>
+    <button role="tab" aria-selected="false" aria-controls="p-mcp" id="t-mcp" tabindex="-1">Any MCP client</button>
+  </div>
+  <div class="panel" role="tabpanel" id="p-claude" aria-labelledby="t-claude">
+<pre><code>/plugin marketplace add Abhiindigloo/EvalHarness
+/plugin install model-finder@model-finder</code></pre>
+    <p>Adds four skills and the local MCP server. Also works in Cowork.</p>
+  </div>
+  <div class="panel" role="tabpanel" id="p-cursor" aria-labelledby="t-cursor" hidden>
+<pre><code><span class="c"># Full plugin with skills: install from the Cursor directory</span>
+https://cursor.directory/plugins/model-finder
+
+<span class="c"># MCP server only, from PyPI (needs uv)</span>
+uvx model-finder-mcp==1.3.5</code></pre>
+    <p>The directory installs skills and tools together. For tools only, add the uvx command to your Cursor MCP settings.</p>
+  </div>
+  <div class="panel" role="tabpanel" id="p-codex" aria-labelledby="t-codex" hidden>
+<pre><code>codex plugin marketplace add Abhiindigloo/EvalHarness
+codex plugin add model-finder@model-finder</code></pre>
+  </div>
+  <div class="panel" role="tabpanel" id="p-copilot" aria-labelledby="t-copilot" hidden>
+<pre><code>copilot plugin marketplace add Abhiindigloo/EvalHarness
+copilot plugin install model-finder@model-finder</code></pre>
+  </div>
+  <div class="panel" role="tabpanel" id="p-gemini" aria-labelledby="t-gemini" hidden>
+<pre><code>gemini extensions install https://github.com/Abhiindigloo/EvalHarness</code></pre>
+    <p>Gemini CLI starts extension tools only in folders you trust. It asks the first time you open a project.</p>
+  </div>
+  <div class="panel" role="tabpanel" id="p-mcp" aria-labelledby="t-mcp" hidden>
+<pre><code>{
+  "mcpServers": {
+    "model-finder": {
+      "command": "uvx",
+      "args": ["model-finder-mcp==1.3.5"]
+    }
+  }
+}</code></pre>
+    <p>Works in VS Code, JetBrains, Windsurf, Claude Desktop and other MCP clients. Published on PyPI and in the official MCP Registry as co.indigloo/model-finder.</p>
+  </div>
+</section>
+
+<section id="privacy">
+  <h2>Your code stays yours</h2>
+  <p class="intro">Built for teams in regulated sectors. Designed with India's DPDP Act in mind.</p>
+  <dl class="facts">
+    <div><dt>Runs on your machine</dt><dd>The MCP server makes no network calls and writes no files. Nothing is ever sent to Indigloo.</dd></div>
+    <div><dt>Your keys, your providers</dt><dd>Evaluations call only the providers you configure, with keys read from your environment. Keys are never printed or stored.</dd></div>
+    <div><dt>Personal data blocked by default</dt><dd>Inputs are scanned before sending. Secrets are always blocked; Aadhaar, PAN, card numbers and similar data stop the run unless you allow them.</dd></div>
+    <div><dt>Advice, not changes</dt><dd>It never switches your model or deploys anything. You review the routing it suggests and decide.</dd></div>
+  </dl>
+</section>
+
+<section id="where">
+  <h2>Find it on</h2>
+  <div class="where">
+    <a href="https://github.com/Abhiindigloo/EvalHarness"><strong>GitHub</strong><span>Source, docs and releases. MIT licence.</span></a>
+    <a href="https://cursor.directory/plugins/model-finder"><strong>Cursor directory</strong><span>Plugin with four skills and the MCP server.</span></a>
+    <a href="https://pypi.org/project/model-finder-mcp/"><strong>PyPI</strong><span>model-finder-mcp, no dependencies.</span></a>
+    <a href="https://registry.modelcontextprotocol.io/v0/servers?search=co.indigloo"><strong>MCP Registry</strong><span>co.indigloo/model-finder, verified by domain.</span></a>
+  </div>
+</section>
+</main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>Model Finder is made by <a href="https://indigloo.co">Indigloo</a>, Mumbai.</span>
+    <nav aria-label="Policies">
+      <a href="https://github.com/Abhiindigloo/EvalHarness/blob/main/PRIVACY.md">Privacy</a>
+      <a href="https://github.com/Abhiindigloo/EvalHarness/blob/main/TERMS.md">Terms</a>
+      <a href="https://github.com/Abhiindigloo/EvalHarness/blob/main/SECURITY.md">Security</a>
+      <a href="https://github.com/Abhiindigloo/EvalHarness/blob/main/SUPPORT.md">Support</a>
+    </nav>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var NS = "http://www.w3.org/2000/svg";
+  var COLS = 16, ROWS = 10;
+  var PASSES = [2, 3, 3, 4, 6, 7, 8, 9, 10, 10, 10, 10, 10, 10, 10, 10];
+  var X0 = 86, X1 = 610, Y0 = 46, DY = 25, R = 6.2;
+  var DX = (X1 - X0) / (COLS - 1);
+  var AXIS_Y = Y0 + DY * (ROWS - 1) + 34, BAR_Y = AXIS_Y + 86, BAR_H = 44;
+  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var svg = document.getElementById("field");
+  var range = document.getElementById("threshold");
+  var out = document.getElementById("tval");
+  var reading = document.getElementById("reading");
+  if (!svg || !range) return;
+
+  function el(name, attrs, parent) {
+    var n = document.createElementNS(NS, name);
+    for (var k in attrs) if (Object.prototype.hasOwnProperty.call(attrs, k)) n.setAttribute(k, attrs[k]);
+    (parent || svg).appendChild(n);
+    return n;
+  }
+  // deterministic failure rows per column
+  var seed = 1308;
+  function rnd() { seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+  var fails = PASSES.map(function (p) {
+    var rows = []; for (var i = 0; i < ROWS; i++) rows.push(i);
+    for (var j = rows.length - 1; j > 0; j--) { var r = Math.floor(rnd() * (j + 1)); var t = rows[j]; rows[j] = rows[r]; rows[r] = t; }
+    return rows.slice(0, ROWS - p);
+  });
+
+  var colX = function (j) { return X0 + j * DX; };
+  var rowY = function (i) { return Y0 + i * DY; };
+
+  // static frame
+  var frame = el("g", { opacity: reduce ? 1 : 0 });
+  for (var j = 0; j < COLS; j++) el("line", { x1: colX(j), x2: colX(j), y1: Y0 - 18, y2: rowY(ROWS - 1) + 14, "class": "guide" }, frame);
+  for (var i = 0; i < ROWS; i++) {
+    var t = el("text", { x: X0 - 26, y: rowY(i) + 3.5, "text-anchor": "end" }, frame);
+    t.textContent = "e" + (i < 9 ? "0" : "") + (i + 1);
+  }
+  el("line", { x1: X0 - DX / 2, x2: X1 + DX / 2, y1: AXIS_Y, y2: AXIS_Y, "class": "axis" }, frame);
+  for (j = 0; j < COLS; j++) el("line", { x1: colX(j), x2: colX(j), y1: AXIS_Y, y2: AXIS_Y + 8, "class": "axis" }, frame);
+  var lc = el("text", { x: X0 - DX / 2, y: AXIS_Y + 28 }, frame); lc.textContent = "cheaper";
+  var rc = el("text", { x: X1 + DX / 2, y: AXIS_Y + 28, "text-anchor": "end" }, frame); rc.textContent = "cost per passing answer";
+  el("line", { x1: X0 - DX / 2, x2: X1 + DX / 2, y1: BAR_Y, y2: BAR_Y, "class": "guide" }, frame);
+  var pr = el("text", { x: X1 + DX / 2, y: BAR_Y + 22, "text-anchor": "end" }, frame); pr.textContent = "pass rate";
+
+  // columns of observations
+  var cols = [], bars = [];
+  for (j = 0; j < COLS; j++) {
+    var g = el("g", { "class": "col" });
+    var marks = [];
+    for (i = 0; i < ROWS; i++) {
+      var failed = fails[j].indexOf(i) !== -1;
+      var m = failed
+        ? el("circle", { cx: colX(j), cy: rowY(i), r: R - 0.8, "class": "ring" }, g)
+        : el("circle", { cx: colX(j), cy: rowY(i), r: R, "class": "dot" }, g);
+      if (!reduce) m.style.transform = "scale(0)";
+      marks.push(m);
+    }
+    cols.push({ g: g, marks: marks });
+    var h = BAR_H * PASSES[j] / ROWS;
+    var b = el("line", { x1: colX(j), x2: colX(j), y1: BAR_Y, y2: reduce ? BAR_Y - h : BAR_Y, "class": "bar" });
+    bars.push({ el: b, h: h });
+  }
+  var scan = el("line", { x1: X0, x2: X0, y1: Y0 - 20, y2: rowY(ROWS - 1) + 16, "class": "scan" });
+  var thresh = el("line", { x1: X0 - DX / 2, x2: X1 + DX / 2, y1: BAR_Y - BAR_H, y2: BAR_Y - BAR_H, "class": "thresh", opacity: reduce ? 1 : 0 });
+  var bracket = el("path", { d: "", "class": "bracket" });
+  var pick = el("text", { x: 0, y: Y0 - 26, "text-anchor": "middle", "class": "pick", opacity: 0 });
+  var pickStem = el("line", { x1: 0, x2: 0, y1: Y0 - 22, y2: Y0 - 16, "class": "bracket", opacity: 0 });
+
+  function choose(th) {
+    var chosen = -1, fallback = -1;
+    for (var k = 0; k < COLS; k++) if (PASSES[k] / ROWS >= th) { chosen = k; break; }
+    if (chosen >= 0) {
+      var best = PASSES[chosen];
+      for (k = chosen + 1; k < COLS; k++) if (PASSES[k] > best || (PASSES[k] === ROWS && best === ROWS)) { fallback = k; break; }
+    }
+    return { chosen: chosen, fallback: fallback };
+  }
+
+  function render(animateBracket) {
+    var th = Number(range.value) / 100;
+    out.value = range.value + "%"; out.textContent = out.value;
+    var c = choose(th);
+    var ty = BAR_Y - BAR_H * th;
+    thresh.setAttribute("y1", ty); thresh.setAttribute("y2", ty);
+    thresh.style.transition = reduce ? "none" : "all .45s cubic-bezier(.2,.7,.2,1)";
+    for (var k = 0; k < COLS; k++) {
+      cols[k].g.setAttribute("class", "col" + (k === c.chosen ? " chosen" : ""));
+      bars[k].el.setAttribute("class", "bar" + (k === c.chosen ? " chosen" : PASSES[k] / ROWS >= th ? " pass" : ""));
+    }
+    if (c.chosen < 0) {
+      bracket.setAttribute("d", ""); pick.setAttribute("opacity", 0); pickStem.setAttribute("opacity", 0);
+      reading.textContent = "No candidate passes " + range.value + "% of your examples. Lower the bar or add stronger models.";
+      return;
+    }
+    var xc = colX(c.chosen);
+    pick.setAttribute("x", Math.min(Math.max(xc, X0 + 40), X1 - 40));
+    pick.textContent = "cheapest that passes";
+    pickStem.setAttribute("x1", xc); pickStem.setAttribute("x2", xc);
+    pick.setAttribute("opacity", 1); pickStem.setAttribute("opacity", 1);
+    var yb = rowY(ROWS - 1) + 22;
+    if (c.fallback >= 0) {
+      var xf = colX(c.fallback);
+      bracket.setAttribute("d", "M" + xc + " " + (yb - 6) + "V" + yb + "H" + xf + "V" + (yb - 6));
+      if (animateBracket && !reduce) {
+        var len = bracket.getTotalLength();
+        bracket.style.transition = "none";
+        bracket.style.strokeDasharray = len; bracket.style.strokeDashoffset = len;
+        bracket.getBoundingClientRect();
+        bracket.style.transition = "stroke-dashoffset .6s ease";
+        bracket.style.strokeDashoffset = 0;
+      }
+    } else bracket.setAttribute("d", "");
+    var passN = PASSES[c.chosen];
+    reading.innerHTML = "Candidate <b>" + (c.chosen + 1) + " of 16</b> passes " + passN + " of 10 examples. Cheaper models miss the bar" +
+      (c.fallback >= 0 ? "; candidate " + (c.fallback + 1) + " is the fallback when a reply fails a check." : ".");
+  }
+
+  function intro() {
+    if (reduce) { render(false); return; }
+    var start = null, COLMS = 95, ROWMS = 22;
+    frame.style.transition = "opacity .5s ease"; frame.setAttribute("opacity", 1);
+    scan.style.opacity = 0.9;
+    reading.textContent = "Running 16 candidates on 10 examples…";
+    function step(ts) {
+      if (start === null) start = ts;
+      var t = ts - start - 350;
+      var head = t / COLMS;
+      scan.setAttribute("x1", colX(Math.min(COLS - 1, Math.max(0, head)))); scan.setAttribute("x2", scan.getAttribute("x1"));
+      for (var k = 0; k < COLS; k++) {
+        for (var r = 0; r < ROWS; r++) {
+          var local = t - k * COLMS - r * ROWMS;
+          var s = Math.max(0, Math.min(1, local / 180));
+          var e = s < 1 ? 1 - Math.pow(1 - s, 3) * (1 - 1.6 * s * (1 - s)) : 1;
+          cols[k].marks[r].style.transform = "scale(" + e.toFixed(3) + ")";
+        }
+        var bl = Math.max(0, Math.min(1, (t - k * COLMS - ROWS * ROWMS) / 260));
+        bars[k].el.setAttribute("y2", BAR_Y - bars[k].h * (1 - Math.pow(1 - bl, 3)));
+      }
+      var total = COLS * COLMS + ROWS * ROWMS + 260;
+      if (t < total) { requestAnimationFrame(step); return; }
+      scan.style.transition = "opacity .4s ease"; scan.style.opacity = 0;
+      thresh.setAttribute("opacity", 1);
+      thresh.setAttribute("y1", BAR_Y); thresh.setAttribute("y2", BAR_Y);
+      requestAnimationFrame(function () { render(true); });
+    }
+    requestAnimationFrame(step);
+  }
+
+  range.addEventListener("input", function () { render(true); });
+
+  var started = false;
+  function go() { if (!started) { started = true; intro(); } }
+  if ("IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { go(); io.disconnect(); } }, { threshold: 0.35 });
+    io.observe(svg);
+  } else go();
+
+
+  // routing demo
+  (function () {
+    var rs = document.getElementById("route"), cap = document.getElementById("route-caption");
+    if (!rs) return;
+    function mk(name, a, parent) { var n = document.createElementNS(NS, name); for (var k in a) n.setAttribute(k, a[k]); (parent || rs).appendChild(n); return n; }
+    var SX = [60, 330, 590, 850], Y = 70;
+    var narrow = window.matchMedia && window.matchMedia("(max-width: 640px)").matches;
+    if (narrow) rs.setAttribute("class", "narrow");
+    var names = narrow ? [["Request", ""], ["Cheapest", ""], ["Fallback", ""], ["Strongest", ""]] : [["Your request", ""], ["Cheapest that passes", "candidate 8"], ["Fallback", "candidate 9"], ["Strongest", "candidate 16"]];
+    mk("line", { x1: SX[0], x2: SX[3], y1: Y, y2: Y, "class": "wire" });
+    var st = [];
+    names.forEach(function (n, i) {
+      var c = i === 0 ? mk("circle", { cx: SX[0], cy: Y, r: 7, fill: "var(--ink)" }) : mk("circle", { cx: SX[i], cy: Y, r: 24, "class": "station" });
+      var t = mk("text", { x: SX[i], y: Y + 54, "text-anchor": i === 0 ? "start" : "middle" }); t.textContent = n[0];
+      if (i === 0) t.setAttribute("x", SX[0] - 7);
+      if (n[1]) { var s2 = mk("text", { x: SX[i], y: Y + 74, "text-anchor": "middle", "class": "sub" }); s2.textContent = n[1]; }
+      st.push(c);
+    });
+    var tick = mk("path", { d: "M" + (SX[1] - 9) + " " + Y + " l6 6 l12 -13", "class": "mark ok", opacity: 0 });
+    var cross = mk("path", { d: "M" + (SX[1] - 8) + " " + (Y - 8) + " l16 16 M" + (SX[1] + 8) + " " + (Y - 8) + " l-16 16", "class": "mark no", opacity: 0 });
+    var tick2 = mk("path", { d: "M" + (SX[2] - 9) + " " + Y + " l6 6 l12 -13", "class": "mark ok", opacity: 0 });
+    var pk = mk("circle", { cx: SX[0], cy: Y, r: 6, "class": "packet", opacity: 0 });
+    var CAPS = [
+      "Every request starts at the cheapest model that passed your evaluation.",
+      "<b>Most requests stop here.</b> The reply passes your checks, so you pay the lowest price.",
+      "<b>When a reply fails a check</b>, such as invalid JSON or a missing field, the request moves up one model.",
+      "<b>The fallback answers.</b> You pay more only on the requests that need it."
+    ];
+    function say(i) { cap.style.opacity = 0; setTimeout(function () { cap.innerHTML = CAPS[i]; cap.style.opacity = 1; }, 180); }
+    if (reduce) {
+      tick.setAttribute("opacity", 0); cross.setAttribute("opacity", 1); tick2.setAttribute("opacity", 1);
+      st[1].setAttribute("class", "station lit"); cap.innerHTML = CAPS[2] + " " + CAPS[3].replace(/<\/?b>/g, ""); return;
+    }
+    var ease = function (x) { return x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; };
+    // timeline in ms
+    var L = 9200, visible = false, t0 = null, last = -1;
+    function frame(ts) {
+      if (!visible) { t0 = null; return; }
+      if (t0 === null) t0 = ts;
+      var t = (ts - t0) % L, x, phase;
+      tick.setAttribute("opacity", 0); cross.setAttribute("opacity", 0); tick2.setAttribute("opacity", 0);
+      st[1].setAttribute("class", "station"); st[2].setAttribute("class", "station");
+      pk.setAttribute("opacity", 1);
+      if (t < 1100) { x = SX[0] + (SX[1] - SX[0]) * ease(t / 1100); phase = 0; }
+      else if (t < 3600) { x = SX[1]; tick.setAttribute("opacity", 1); st[1].setAttribute("class", "station lit"); phase = 1; pk.setAttribute("opacity", Math.max(0, 1 - (t - 3200) / 400)); }
+      else if (t < 4700) { x = SX[0] + (SX[1] - SX[0]) * ease((t - 3600) / 1100); phase = 0; }
+      else if (t < 6100) { x = SX[1]; cross.setAttribute("opacity", 1); st[1].setAttribute("class", "station lit"); phase = 2; }
+      else if (t < 7000) { x = SX[1] + (SX[2] - SX[1]) * ease((t - 6100) / 900); cross.setAttribute("opacity", 1); phase = 2; }
+      else { x = SX[2]; cross.setAttribute("opacity", 1); tick2.setAttribute("opacity", 1); st[2].setAttribute("class", "station lit"); phase = 3; pk.setAttribute("opacity", Math.max(0, 1 - (t - 8700) / 500)); }
+      pk.setAttribute("cx", x.toFixed(1));
+      if (phase !== last) { last = phase; say(phase); }
+      requestAnimationFrame(frame);
+    }
+    if ("IntersectionObserver" in window) {
+      new IntersectionObserver(function (es) {
+        var was = visible; visible = es[0].isIntersecting;
+        if (visible && !was) requestAnimationFrame(frame);
+      }, { threshold: 0.4 }).observe(rs);
+    }
+  })();
+
+  // tabs
+  var tabs = Array.prototype.slice.call(document.querySelectorAll('[role="tab"]'));
+  function select(tab) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute("aria-selected", on); t.tabIndex = on ? 0 : -1;
+      document.getElementById(t.getAttribute("aria-controls")).hidden = !on;
+    });
+  }
+  tabs.forEach(function (t, idx) {
+    t.addEventListener("click", function () { select(t); });
+    t.addEventListener("keydown", function (e) {
+      var d = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+      if (d) { var n = tabs[(idx + d + tabs.length) % tabs.length]; select(n); n.focus(); e.preventDefault(); }
+    });
+  });
+
+  // copy buttons
+  Array.prototype.forEach.call(document.querySelectorAll("pre"), function (pre) {
+    var b = document.createElement("button");
+    b.className = "copy"; b.type = "button"; b.textContent = "Copy";
+    b.addEventListener("click", function () {
+      var text = Array.prototype.filter.call(pre.querySelector("code").childNodes, function (n) {
+        return !(n.nodeType === 1 && n.classList.contains("c"));
+      }).map(function (n) { return n.textContent; }).join("").replace(/^\s*\n/gm, "").trim();
+      try {
+        navigator.clipboard.writeText(text).then(function () { b.textContent = "Copied"; setTimeout(function () { b.textContent = "Copy"; }, 1600); },
+          function () { b.textContent = "Select and copy"; });
+      } catch (err) { b.textContent = "Select and copy"; }
+    });
+    pre.appendChild(b);
+  });
+})();
+</script>
+</body>
+</html>
