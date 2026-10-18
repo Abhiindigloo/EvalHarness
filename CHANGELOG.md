@@ -13,7 +13,6 @@ Policies written for marketplace review (Anthropic Software Directory Policy §3
 - **TERMS.md**: terms of use — relationship to the MIT License, advisory nature, user responsibilities and acceptable use, third-party services, no warranty, limitation of liability, trademarks, changes, governing law (India).
 - **SECURITY.md**: security policy — supported versions, private reporting steps, response targets, coordinated disclosure, safe harbour, scope, and the security design.
 - README redesigned: a hero plate in light and dark editions (`assets/readme-hero-*.png`, rendered by `assets/render_hero.py` following `assets/DESIGN.md`), badges, a flow diagram, collapsible IDE setups.
-- MCP Registry name is now `co.indigloo/model-finder`, verified through the indigloo.co domain (DNS TXT record) instead of a personal GitHub namespace; `release.yml` signs in with the domain key stored as an environment secret.
 - MCP server: an unexpected internal error now logs only the error type and code location, never the exception message, which could echo tool arguments. New tests cover this and the policy contents.
 
 ## 1.3.4 (2026-10-17)

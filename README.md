@@ -27,7 +27,7 @@
   <a href="SECURITY.md">Security</a>
 </p>
 
-<!-- mcp-name: co.indigloo/model-finder -->
+<!-- mcp-name: io.github.Abhiindigloo/model-finder -->
 
 > [!NOTE]
 > **Runs locally.** Model Finder is a set of four Agent Skills plus a local MCP server (`mcp/server.py`, Python 3.9+ standard library, no dependencies). The server makes no network calls, needs no API keys, never writes files and never sends anything to Indigloo. Only the eval script and the router it generates call model providers, with your own keys, when you run them.
@@ -187,15 +187,7 @@ End-to-end tests run against a local mock of the OpenAI-compatible, Anthropic, a
 
 1. Bump the version everywhere (`python3 tests/check_release_version.py` lists any field that differs) and add a CHANGELOG entry.
 2. Push a tag `vX.Y.Z`. `release.yml` runs the tests, checks the versions, builds the package, publishes it to PyPI with trusted publishing, then publishes `server.json` to the official MCP Registry.
-3. One-time setup:
-   - **PyPI**: add a pending trusted publisher for project `model-finder-mcp` (owner `Abhiindigloo`, repository `EvalHarness`, workflow `release.yml`, environment `pypi`), ideally from the Indigloo PyPI organization, and create the `pypi` environment in the repository settings.
-   - **MCP Registry** (`co.indigloo/model-finder`, verified through the indigloo.co domain). On your own machine, with OpenSSL 3:
-     ```bash
-     openssl genpkey -algorithm Ed25519 -out mcp-registry-key.pem
-     echo "TXT record for indigloo.co: v=MCPv1; k=ed25519; p=$(openssl pkey -in mcp-registry-key.pem -pubout -outform DER | tail -c 32 | base64)"
-     echo "GitHub secret MCP_REGISTRY_PRIVATE_KEY: $(openssl pkey -in mcp-registry-key.pem -noout -text | grep -A3 'priv:' | tail -n +2 | tr -d ' :\n')"
-     ```
-     Add the TXT record at the apex of indigloo.co, create a repository environment `mcp-registry`, store the hex key as its secret `MCP_REGISTRY_PRIVATE_KEY`, then delete `mcp-registry-key.pem` or keep it in a password manager.
+3. One-time setup: on pypi.org add a pending trusted publisher for project `model-finder-mcp` (owner `Abhiindigloo`, repository `EvalHarness`, workflow `release.yml`, environment `pypi`), and create the `pypi` environment in the repository settings.
 
 <details>
 <summary><b>Repository layout</b></summary>

@@ -1,4 +1,4 @@
-# Publishes a tagged release to PyPI (package model-finder-mcp) and the official MCP Registry (co.indigloo/model-finder).
+# Publishes a tagged release to PyPI (package model-finder-mcp) and the official MCP Registry.
 # One-time setup: on pypi.org add a "pending trusted publisher" for project model-finder-mcp,
 # owner Abhiindigloo, repository EvalHarness, workflow release.yml, environment pypi.
 name: release
@@ -44,7 +44,8 @@ jobs:
   mcp-registry:
     needs: pypi
     runs-on: ubuntu-latest
-    environment: mcp-registry
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
@@ -54,11 +55,8 @@ jobs:
           curl -fsSL -o mcp-publisher.tar.gz \
             https://github.com/modelcontextprotocol/registry/releases/download/v1.8.1/mcp-publisher_linux_amd64.tar.gz
           tar xzf mcp-publisher.tar.gz mcp-publisher
-      - name: Publish to the MCP Registry as co.indigloo/model-finder (retries while PyPI metadata propagates)
-        env:
-          # Ed25519 private key (hex) whose public half is in the indigloo.co TXT record. See README → Releases.
-          MCP_REGISTRY_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_PRIVATE_KEY }}
+      - name: Publish to the MCP Registry (retries while PyPI metadata propagates)
         run: |
-          ./mcp-publisher login dns --domain indigloo.co --private-key "$MCP_REGISTRY_PRIVATE_KEY"
+          ./mcp-publisher login github-oidc
           for i in 1 2 3 4 5; do ./mcp-publisher publish && exit 0; sleep 60; done
           exit 1
