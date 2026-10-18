@@ -2,9 +2,11 @@
 """Fail unless every version field in the repository equals the given version (used by the release workflow)."""
 from __future__ import annotations
 
+import base64
 import json
 import re
 import sys
+import urllib.parse
 from pathlib import Path
 from typing import Dict
 
@@ -25,7 +27,23 @@ def collect_versions() -> Dict[str, str]:
     pyproject = re.search(r'^version = "([^"]+)"', (ROOT / "pyproject.toml").read_text(encoding="utf-8"), re.M)
     found["mcp/server.py"] = server.group(1) if server else "missing"
     found["pyproject.toml"] = pyproject.group(1) if pyproject else "missing"
+    found.update(readme_pins((ROOT / "README.md").read_text(encoding="utf-8")))
     return found
+
+
+def readme_pins(readme: str) -> Dict[str, str]:
+    """Versions pinned in README install instructions, including inside the base64 Cursor install link."""
+    pins: Dict[str, str] = {}
+    for i, ver in enumerate(re.findall(r"uvx model-finder-mcp==([0-9][0-9A-Za-z.+-]*)", readme)):
+        pins[f"README.md uvx pin [{i}]"] = ver
+    for i, encoded in enumerate(re.findall(r"install-mcp\?name=model-finder&config=([A-Za-z0-9%+/=]+)", readme)):
+        try:
+            config = json.loads(base64.b64decode(urllib.parse.unquote(encoded)).decode("utf-8"))
+            match = re.fullmatch(r"model-finder-mcp==(.+)", config["args"][0])
+            pins[f"README.md Cursor install link [{i}]"] = match.group(1) if match else "unpinned"
+        except (ValueError, KeyError, IndexError, TypeError):
+            pins[f"README.md Cursor install link [{i}]"] = "unreadable"
+    return pins
 
 
 def main(argv: list) -> int:

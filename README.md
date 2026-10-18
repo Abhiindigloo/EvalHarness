@@ -66,8 +66,9 @@ Requires Python 3.9+ on your PATH as `python3` (see [Windows](#windows)). Nothin
 | **OpenAI Codex CLI** | `codex plugin marketplace add Abhiindigloo/EvalHarness` then `codex plugin add model-finder@model-finder` | ✅ | ✅ via `mcp.json` (Agent Plugins format, runs `./mcp/server.py`). Codex gives the server no workspace, so the agent passes the project path |
 | **GitHub Copilot CLI** | `copilot plugin marketplace add Abhiindigloo/EvalHarness` then `copilot plugin install model-finder@model-finder` | ✅ | ✅ via `mcp.json` |
 | **Gemini CLI** | `gemini extensions install https://github.com/Abhiindigloo/EvalHarness` | ✅ | ✅ via `gemini-extension.json` |
-| **Cursor** | Install from the Cursor marketplace or cursor.directory once listed. Until then, clone into `~/.cursor/plugins/local/model-finder` and reload the window | ✅ | ✅ via `mcp.json` or `.cursor-plugin/plugin.json` → `.mcp.json` |
-| **Any MCP client, from PyPI** | `uvx model-finder-mcp` (published by the release workflow; see [Releases](#releases)) | — | ✅ |
+| **Cursor** | Plugin with skills: [cursor.directory/plugins/model-finder](https://cursor.directory/plugins/model-finder), or clone into `~/.cursor/plugins/local/model-finder` and reload the window | ✅ | ✅ via `mcp.json` or `.cursor-plugin/plugin.json` → `.mcp.json` |
+| **Cursor, MCP only** | [<img alt="Add to Cursor" src="https://img.shields.io/badge/Add%20to-Cursor-1c1b19?labelColor=f3f0e8">](https://cursor.com/en/install-mcp?name=model-finder&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJtb2RlbC1maW5kZXItbWNwPT0xLjMuNSJdLCJlbnYiOnsiTU9ERUxfRklOREVSX1JPT1QiOiIke3dvcmtzcGFjZUZvbGRlcn0ifX0%3D) (one click; runs `uvx model-finder-mcp==1.3.5`, needs [uv](https://docs.astral.sh/uv/)) | — | ✅ |
+| **Any MCP client, from PyPI** | `uvx model-finder-mcp==1.3.5` ([PyPI](https://pypi.org/project/model-finder-mcp/), [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=co.indigloo): `co.indigloo/model-finder`) | — | ✅ |
 | **VS Code, JetBrains, Windsurf, others** | Add the server to the client's MCP settings ([manual setup](#manual-mcp-setup)) | — | ✅ |
 | **Other Agent Skills clients** | Copy `skills/<name>/` into the client's skills directory | ✅ | — |
 
