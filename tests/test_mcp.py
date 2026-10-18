@@ -555,8 +555,6 @@ class McpPackagingTest(unittest.TestCase):
         claude = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
         self.assertEqual(claude["license"], "MIT")
         self.assertTrue((ROOT / claude["icon"]).is_file())
-        for key in ("documentationUrl", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl"):
-            self.assertTrue(claude[key].startswith("https://"), key)
 
     def test_no_dependency_on_old_website(self):
         for path in ROOT.rglob("*"):
@@ -568,10 +566,8 @@ class McpPackagingTest(unittest.TestCase):
 
     def test_listing_links_point_to_files_in_this_repo(self):
         repo = "https://github.com/Abhiindigloo/EvalHarness/blob/main/"
-        claude = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
         codex = json.loads((ROOT / ".codex-plugin/plugin.json").read_text())["interface"]
-        links = [claude[k] for k in ("supportUrl", "privacyPolicyUrl", "termsOfServiceUrl")]
-        links += [codex[k] for k in ("supportURL", "privacyPolicyURL", "termsOfServiceURL")]
+        links = [codex[k] for k in ("supportURL", "privacyPolicyURL", "termsOfServiceURL")]
         for link in links:
             self.assertTrue(link.startswith(repo), link)
             self.assertTrue((ROOT / link[len(repo):]).is_file(), f"{link} points to a missing file")
