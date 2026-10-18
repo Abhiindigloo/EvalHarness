@@ -29,9 +29,5 @@
   ],
   "license": "MIT",
   "icon": "./assets/logo.png",
-  "documentationUrl": "https://github.com/Abhiindigloo/EvalHarness#readme",
-  "supportUrl": "https://github.com/Abhiindigloo/EvalHarness/blob/main/SUPPORT.md",
-  "privacyPolicyUrl": "https://github.com/Abhiindigloo/EvalHarness/blob/main/PRIVACY.md",
-  "termsOfServiceUrl": "https://github.com/Abhiindigloo/EvalHarness/blob/main/TERMS.md",
   "mcpServers": "./.mcp.json"
 }
