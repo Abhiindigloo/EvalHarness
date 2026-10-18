@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- **README**: one-click "Add to Cursor" link that runs the PyPI package (`uvx model-finder-mcp==1.3.5`, workspace from `${workspaceFolder}`). The cursor.directory MCP button reuses the plugin's `.mcp.json`, whose `${CLAUDE_PLUGIN_ROOT}` path is only set for full plugin installs. Install table now links the cursor.directory listing, PyPI and the MCP Registry entry.
+- **Release check**: `tests/check_release_version.py` also verifies the versions pinned in the README, including the one inside the Cursor link's base64 config, so a release cannot leave them stale.
+
 ## 1.3.5 (2026-10-17)
 
 Policies written for marketplace review (Anthropic Software Directory Policy §3A–3C and §1D, OpenAI listing URLs).

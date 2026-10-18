@@ -592,6 +592,21 @@ class McpPackagingTest(unittest.TestCase):
         glama = json.loads((ROOT / "glama.json").read_text())
         self.assertEqual(glama["maintainers"], ["Abhiindigloo"])
 
+    def test_cursor_install_link_runs_the_pypi_package(self):
+        """The README's one-click Cursor link must not depend on ${CLAUDE_PLUGIN_ROOT}, which only plugin installs set."""
+        import base64
+        import re
+        import urllib.parse
+        readme = (ROOT / "README.md").read_text()
+        encoded = re.findall(r"https://cursor\.com/en/install-mcp\?name=model-finder&config=([A-Za-z0-9%+/=]+)\)", readme)
+        self.assertEqual(len(encoded), 1, "expected exactly one Cursor install link in README.md")
+        config = json.loads(base64.b64decode(urllib.parse.unquote(encoded[0])))
+        version = json.loads((ROOT / "server.json").read_text())["version"]
+        self.assertEqual(config["command"], "uvx")
+        self.assertEqual(config["args"], [f"model-finder-mcp=={version}"])
+        self.assertEqual(config["env"], {"MODEL_FINDER_ROOT": "${workspaceFolder}"})
+        self.assertNotIn("PLUGIN_ROOT", json.dumps(config))
+
     def test_server_runs_from_the_wheel_layout(self):
         """The PyPI wheel puts server.py and skills/ side by side in model_finder_mcp/; the server must find them."""
         tmp = Path(tempfile.mkdtemp())
