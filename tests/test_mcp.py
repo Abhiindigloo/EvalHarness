@@ -555,6 +555,8 @@ class McpPackagingTest(unittest.TestCase):
         claude = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
         self.assertEqual(claude["license"], "MIT")
         self.assertTrue((ROOT / claude["icon"]).is_file())
+        for key in ("documentationUrl", "supportUrl", "privacyPolicyUrl", "termsOfServiceUrl"):
+            self.assertNotIn(key, claude, "not in the Claude Code plugin schema")
 
     def test_no_dependency_on_old_website(self):
         for path in ROOT.rglob("*"):
