@@ -580,10 +580,12 @@ _PAGINATION = {"type": "object", "properties": {"total": _INT, "count": _INT, "o
 TOOLS: List[Dict[str, Any]] = [
     {"name": "modelfinder_audit_models", "title": "Audit AI models in the repo", "handler": t_audit_models,
      "render": md_audit,
-     "description": "List AI model IDs (quoted literals) and AI SDKs used in the repository, with file:line locations, "
+     "description": "List the AI model IDs (quoted literals) and AI SDKs a repository uses, with file:line locations, "
                     "provider family, route hints (Bedrock, Vertex AI, Azure, OpenRouter), usage counts and whether each "
-                    "ID is hard-coded or an environment-variable default. Read-only; skips secret-like files and "
-                    "dependency folders; never returns line content. Results are sorted by usage and paginated.",
+                    "ID is hard-coded or an environment-variable default. Use first, to see which models a project "
+                    "depends on before comparing or replacing them; use modelfinder_draft_eval_examples to find test "
+                    "inputs instead. Read-only and local: no network calls, no files written. Skips secret-like files and "
+                    "dependency folders and never returns line content. Sorted by usage; paginate with limit/offset.",
      "inputSchema": _schema({"path": _PATH, "limit": _LIMIT(AUDIT_DEFAULT_LIMIT), "offset": _OFFSET,
                              "provider_family": {"type": "string", "enum": FAMILIES,
                                                  "description": "Only models from this family, e.g. \"anthropic\"."},
@@ -594,18 +596,23 @@ TOOLS: List[Dict[str, Any]] = [
                           sdks={"type": "array"}, summary={"type": "object"}, pagination=_PAGINATION)},
     {"name": "modelfinder_draft_eval_examples", "title": "Draft eval examples from the repo",
      "handler": t_draft_eval_examples, "render": md_drafts,
-     "description": "Draft eval examples from prompt files and fixtures (prompts/, evals/, fixtures/, *.prompt.md, and "
-                    "JSON/JSONL with input, prompt or chat messages). Drops any candidate with detected personal data "
-                    "or secrets and reports only categories and counts. Drafts have empty checks: agree checks with the "
-                    "user before modelfinder_create_eval_config. Paginated; ids are stable across pages.",
+     "description": "Draft eval examples from the repository's prompt files and fixtures (prompts/, evals/, fixtures/, "
+                    "*.prompt.md, and JSON/JSONL with input, prompt or chat messages). Use after modelfinder_audit_models "
+                    "when the user has no examples yet. Drafts have empty checks: agree checks with the user, then pass "
+                    "them to modelfinder_create_eval_config. Read-only and local: no network calls, no files written. "
+                    "Drops candidates containing personal data or secrets and reports only categories and counts. "
+                    "Paginated; ids are stable across pages.",
      "inputSchema": _schema({"path": _PATH, "limit": _LIMIT(DRAFT_DEFAULT_LIMIT), "offset": _OFFSET}, []),
      "outputSchema": _out(["drafts", "excluded", "pagination"], drafts={"type": "array"}, excluded={"type": "object"},
                           pagination=_PAGINATION)},
     {"name": "modelfinder_create_eval_config", "title": "Create an eval config", "handler": t_create_eval_config,
      "render": md_config,
-     "description": "Assemble an eval config from candidate models, examples with checks, and settings; validate it and "
-                    "screen the examples for personal data and secrets. Returns the config to save as JSON for "
-                    "eval_models.py. Keys are referenced by environment variable name only.",
+     "description": "Build an eval config from candidate models, examples with checks, and settings, then validate it and "
+                    "screen the examples for personal data and secrets. Use once examples and checks are agreed; to check "
+                    "a config the user already has, use modelfinder_validate_eval_config instead. Read-only and local: no "
+                    "network calls, no files written. Returns the config for the user to save as JSON and run with "
+                    "eval_models.py, plus a valid flag, the API call count and the next step. Keys are referenced by environment variable name "
+                    "only, never by value.",
      "inputSchema": _schema({
          "task": {"type": "string", "description": "One-line description of what the model must do."},
          "candidates": {"type": "array", "minItems": 1, "maxItems": 10, "items": _CANDIDATE,
@@ -622,31 +629,43 @@ TOOLS: List[Dict[str, Any]] = [
      "outputSchema": _out(["config", "valid"], config={"type": "object"}, valid={"type": "boolean"})},
     {"name": "modelfinder_validate_eval_config", "title": "Validate an eval config", "handler": t_validate_eval_config,
      "render": md_config,
-     "description": "Check an eval config before running: schema, no keys in the config, HTTPS endpoints, no template "
-                    "placeholders, valid checks. Reports API call count, required environment variable names, unpriced "
-                    "models, and whether the personal-data guard would block the run. Makes no network calls.",
+     "description": "Check an existing eval config before a paid run: schema, no keys in the config, HTTPS endpoints, no "
+                    "template placeholders, valid checks. Use on a config the user wrote or edited; to build a new one "
+                    "use modelfinder_create_eval_config. Read-only and local: no network calls, no files written. Returns "
+                    "valid, problems, the number of API calls the run would make, required environment variable names, "
+                    "unpriced models and whether the personal-data guard would block the run.",
      "inputSchema": _schema({"config": {"type": "object", "description": "The eval config object (as saved for eval_models.py)."}},
                             ["config"]),
      "outputSchema": _out(["valid"], valid={"type": "boolean"})},
     {"name": "modelfinder_check_output", "title": "Test a reply against checks", "handler": t_check_output,
      "render": md_check,
-     "description": "Run deterministic checks on one model reply. Use it to design eval checks and routing guards before "
-                    "spending money on a run.",
+     "description": "Run deterministic checks (contains, not_contains, exact, regex, json_keys, max_chars) on one model reply and "
+                    "report which failed. Use it to design and debug eval checks or routing guards against a sample reply "
+                    "before spending money on a run; to score a whole eval run use modelfinder_rank_eval_results. "
+                    "Read-only and local: no network calls, no files written. Returns passed, failures (check and reason) "
+                    "and checks_run.",
      "inputSchema": _schema({"text": {"type": "string", "description": "The model reply to test."}, "checks": _CHECKS},
                             ["text", "checks"]),
      "outputSchema": _out(["passed", "failures", "checks_run"], passed={"type": "boolean"}, failures={"type": "array"},
                           checks_run=_INT)},
     {"name": "modelfinder_rank_eval_results", "title": "Rank eval results", "handler": t_rank_eval_results,
      "render": md_rank,
-     "description": "Read a results.json object and return the cheapest model that met the pass threshold, ranked by cost "
-                    "per passing call, plus the cost/reliability cascade and models dropped as dominated.",
+     "description": "Rank the models in a finished eval run (the results.json object written by eval_models.py) and "
+                    "recommend the cheapest one that met the pass threshold, ranked by cost per passing call. Use after "
+                    "an eval run; to test a single reply use modelfinder_check_output, and to turn the ranking into a "
+                    "fallback chain use modelfinder_generate_routing. Read-only and local: no network calls, no files "
+                    "written. Returns the recommendation, the ranked list, the cost/reliability cascade and models "
+                    "dropped as dominated (both more expensive and less reliable than another).",
      "inputSchema": _schema({"results": _RESULTS}, ["results"]),
      "outputSchema": _out(["recommendation", "ranked", "cascade", "dominated"], recommendation={"type": "object"},
                           ranked={"type": "array"}, cascade={"type": "array"}, dominated={"type": "array"})},
     {"name": "modelfinder_generate_routing", "title": "Generate cheapest-first routing", "handler": t_generate_routing,
      "render": md_routing,
-     "description": "Turn a results.json object into a cheapest-first routing.json (with guards and a personal-data "
-                    "policy) and a LiteLLM proxy config. Returns both; nothing is written or deployed.",
+     "description": "Turn a finished eval run (results.json object) into a cheapest-first routing.json, with quality "
+                    "guards and a personal-data policy, and an equivalent LiteLLM proxy config. Use after "
+                    "modelfinder_rank_eval_results when the user wants a fallback chain. Read-only and local: no network "
+                    "calls, no files written. Nothing is deployed and the user's active model is not changed; returns "
+                    "both files as text, the model chain and notes.",
      "inputSchema": _schema({"results": _RESULTS, "guards": {**_CHECKS, "minItems": 0,
                                                             "description": "Checks applied to every production reply; "
                                                                            "a failure escalates to the next model."},
@@ -661,9 +680,11 @@ TOOLS: List[Dict[str, Any]] = [
                           litellm_config_yaml={"type": "string"}, chain={"type": "array"}, notes={"type": "array"})},
     {"name": "modelfinder_estimate_cost", "title": "Estimate monthly token cost", "handler": t_estimate_cost,
      "render": md_cost,
-     "description": "Planning estimate of monthly token cost from requests, average tokens per request and USD-per-million "
+     "description": "Estimate monthly token cost from requests per month, average tokens per request and USD-per-million "
                     "prices, with optional cached-input share and pass rate (cost per accepted result, counting retries). "
-                    "Prices must come from the provider's official pricing page.",
+                    "Use for planning or to compare models before running an eval. Read-only and local: no network calls, "
+                    "no files written. Prices are not looked up: pass them from the provider's official pricing page. "
+                    "Returns cost per request, monthly cost and the assumptions used.",
      "inputSchema": _schema({
          "requests_per_month": {**_NUM, "minimum": 0, "description": "e.g. 100000"},
          "input_tokens": {**_NUM, "minimum": 0, "description": "Average input tokens per request."},
@@ -680,9 +701,11 @@ TOOLS: List[Dict[str, Any]] = [
                           monthly_cost_usd=_NUM, assumptions={"type": "array"})},
     {"name": "modelfinder_estimate_memory", "title": "Estimate local model memory", "handler": t_estimate_memory,
      "render": md_memory,
-     "description": "Estimate memory to run an open-weight model locally: weights at a precision plus KV cache for a "
-                    "context length and concurrency (standard MHA/GQA attention only), with headroom against available "
-                    "memory. Give all four of layers, kv_heads, head_dim and context to include the KV cache.",
+     "description": "Estimate the memory needed to run an open-weight model locally: weights at a given precision plus KV "
+                    "cache for a context length and concurrency (standard MHA/GQA attention only), with headroom against "
+                    "available memory. Use when choosing a local model or GPU. Give all four of layers, kv_heads, "
+                    "head_dim and context to include the KV cache; without them only weights are counted. Read-only and "
+                    "local: no network calls, no files written. Returns weights_gib, total_gib, headroom_gib and caveats.",
      "inputSchema": _schema({
          "params_b": {**_NUM, "description": "Total stored parameters in billions (for MoE, all experts)."},
          "bits": {**_NUM, "description": "Effective bits per weight: 16, 8, about 4.5 for common 4-bit formats."},
@@ -699,8 +722,11 @@ TOOLS: List[Dict[str, Any]] = [
                           caveats={"type": "array"})},
     {"name": "modelfinder_scan_sensitive_data", "title": "Scan text for personal data and secrets",
      "handler": t_scan_sensitive_data, "render": md_scan,
-     "description": "Detect Aadhaar (Verhoeff checked), PAN, payment cards (Luhn checked), email addresses, UPI IDs, Indian "
-                    "mobile numbers and API or private keys in text. Returns categories and counts only, never the values.",
+     "description": "Detect Aadhaar (Verhoeff checked), PAN, payment cards (Luhn checked), email addresses, UPI IDs, "
+                    "Indian mobile numbers and API or private keys in text. Use before sending prompts or eval examples "
+                    "to a provider; modelfinder_create_eval_config already runs this on its examples. Read-only and "
+                    "local: no network calls, no files written. Returns categories, counts and a clean flag, never the "
+                    "matched values.",
      "inputSchema": _schema({"text": {"type": "string", "description": "Text to scan, up to 1,000,000 characters."}}, ["text"]),
      "outputSchema": _out(["personal_data", "secrets", "clean"], personal_data={"type": "object"}, secrets=_INT,
                           clean={"type": "boolean"})},
