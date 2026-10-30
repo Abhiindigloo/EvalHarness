@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "model-finder-mcp"
-version = "1.3.5"
+version = "1.3.6"
 description = "Local MCP server: find the cheapest AI model that passes your own tests"
 readme = "README.md"
 license = "MIT"

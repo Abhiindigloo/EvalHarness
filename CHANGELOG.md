@@ -1,6 +1,14 @@
 # Changelog
 
-## Unreleased
+## 1.3.6 (2026-10-30)
+
+Clearer tools, listing badges, and a smaller set of directory warnings.
+
+- **MCP tool descriptions** rewritten for agents: each states its purpose first, when to use it instead of the neighbouring tool, that it is read-only and local, and what it returns.
+- **README**: badges for Socket, Glama, MCPRush and MCPNav.
+- **Manifest cleanup**: removed `documentationUrl`, `supportUrl`, `privacyPolicyUrl` and `termsOfServiceUrl` from `.claude-plugin/plugin.json`; the Claude plugin directory does not read them (its listing form holds these links).
+- **Release workflow**: the MCP Registry publisher download is verified against a pinned SHA-256 before it runs.
+- **Release check**: also verifies the version in the README's Socket badge.
 
 - **README**: one-click "Add to Cursor" link that runs the PyPI package (`uvx model-finder-mcp==1.3.5`, workspace from `${workspaceFolder}`). The cursor.directory MCP button reuses the plugin's `.mcp.json`, whose `${CLAUDE_PLUGIN_ROOT}` path is only set for full plugin installs. Install table now links the cursor.directory listing, PyPI and the MCP Registry entry.
 - **Release check**: `tests/check_release_version.py` also verifies the versions pinned in the README, including the one inside the Cursor link's base64 config, so a release cannot leave them stale.
@@ -12,7 +20,7 @@ Policies written for marketplace review (Anthropic Software Directory Policy §3
 - **PRIVACY.md**: full privacy policy — publisher, scope, per-component table of what is processed, where it goes and what Indigloo retains (nothing), MCP data minimisation, personal-data safeguards, local files, GitHub and registry data, third-party providers, the user organisation's DPDP role, security, children, rights and grievances, changes, contact.
 - **TERMS.md**: terms of use — relationship to the MIT License, advisory nature, user responsibilities and acceptable use, third-party services, no warranty, limitation of liability, trademarks, changes, governing law (India).
 - **SECURITY.md**: security policy — supported versions, private reporting steps, response targets, coordinated disclosure, safe harbour, scope, and the security design.
-- README redesigned: a hero plate in light and dark editions (`assets/readme-hero-*.png`, rendered by `assets/render_hero.py` following `assets/DESIGN.md`), badges, a flow diagram, collapsible IDE setups.
+- README redesigned: a hero plate in light and dark editions (rendered by a script in `assets/`, following `assets/DESIGN.md`), badges, a flow diagram, collapsible IDE setups.
 - MCP Registry name is now `co.indigloo/model-finder`, verified through the indigloo.co domain (DNS TXT record) instead of a personal GitHub namespace; `release.yml` signs in with the domain key stored as an environment secret.
 - MCP server: an unexpected internal error now logs only the error type and code location, never the exception message, which could echo tool arguments. New tests cover this and the policy contents.
 
