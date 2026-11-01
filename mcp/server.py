@@ -656,7 +656,8 @@ TOOLS: List[Dict[str, Any]] = [
                     "an eval run; to test a single reply use modelfinder_check_output, and to turn the ranking into a "
                     "fallback chain use modelfinder_generate_routing. Read-only and local: no network calls, no files "
                     "written. Returns the recommendation, the ranked list, the cost/reliability cascade and models "
-                    "dropped as dominated (both more expensive and less reliable than another).",
+                    "dropped as dominated (a model is dropped when it costs more per passing call than a model earlier in "
+                    "the cascade without being more reliable; equal reliability counts as not more reliable).",
      "inputSchema": _schema({"results": _RESULTS}, ["results"]),
      "outputSchema": _out(["recommendation", "ranked", "cascade", "dominated"], recommendation={"type": "object"},
                           ranked={"type": "array"}, cascade={"type": "array"}, dominated={"type": "array"})},
