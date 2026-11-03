@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.7 (2026-11-04)
+
+Prompt-injection labels, sponsorship links, and a CI fix.
+
+- **Prompt injection**: text copied from repository files is marked untrusted everywhere it is returned. `modelfinder_draft_eval_examples` adds `content_trust: "untrusted"` to its JSON, an "Untrusted content" label to its markdown, and a first next step saying so; the server instructions, the tool description, the eval-models skill and SECURITY.md say to treat it as data, never as instructions. New tests cover the labels.
+- **Sponsorship**: `.github/FUNDING.yml` (GitHub Sponsors button), a Sponsor section in the README, and a `Funding` URL on PyPI. MCP and plugin manifests are unchanged.
+- **README**: MCPRush score badge in the badge row and a "Listed on" section with the MCPRush card.
+- **CI**: workflows pinned to `ubuntu-24.04`; `ubuntu-latest` moved to Ubuntu 26.04, which has no Python 3.9, so the 3.9 test job could not start.
+
 ## 1.3.6 (2026-10-30)
 
 Clearer tools, listing badges, and a smaller set of directory warnings.
