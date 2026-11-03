@@ -43,6 +43,8 @@ def readme_pins(readme: str) -> Dict[str, str]:
             pins[f"README.md Cursor install link [{i}]"] = match.group(1) if match else "unpinned"
         except (ValueError, KeyError, IndexError, TypeError):
             pins[f"README.md Cursor install link [{i}]"] = "unreadable"
+    for i, ver in enumerate(re.findall(r"badge\.socket\.dev/pypi/package/model-finder-mcp/([0-9][0-9A-Za-z.+-]*)\?", readme)):
+        pins[f"README.md Socket badge [{i}]"] = ver
     return pins
 
 
