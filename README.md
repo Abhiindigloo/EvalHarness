@@ -11,9 +11,9 @@
   <img alt="dependencies: none" src="https://img.shields.io/badge/dependencies-none-1c1b19?labelColor=f3f0e8">
   <img alt="MCP: local stdio" src="https://img.shields.io/badge/MCP-local%20stdio-cd462a?labelColor=f3f0e8">
   <a href="LICENSE"><img alt="license MIT" src="https://img.shields.io/badge/license-MIT-1c1b19?labelColor=f3f0e8"></a>
-  <a href="https://socket.dev/pypi/package/model-finder-mcp"><img alt="Socket" src="https://badge.socket.dev/pypi/package/model-finder-mcp/1.3.6?artifact_id=tar-gz"></a>
+  <a href="https://socket.dev/pypi/package/model-finder-mcp"><img alt="Socket" src="https://badge.socket.dev/pypi/package/model-finder-mcp/1.3.7?artifact_id=tar-gz"></a>
   <a href="https://glama.ai/mcp/servers/Abhiindigloo/EvalHarness"><img alt="Glama" src="https://img.shields.io/badge/Glama-tool%20quality%20A-1c1b19?labelColor=f3f0e8"></a>
-  <a href="https://mcprush.com/to/model-finder-mcp?ref=badge"><img alt="mcprush" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fmcprush.com%2Fbadge%2Fmodel-finder-mcp%2Fshields.json"></a>
+  <a href="https://mcprush.com/to/model-finder-mcp?ref=badge"><img alt="Model Finder MCP on mcprush" src="https://mcprush.com/badge/model-finder-mcp/score.svg" height="20"></a>
   <a href="https://mcpnav.net/server/model-finder/"><img alt="Listed on MCPNav" src="https://mcpnav.net/badge/model-finder.svg" height="20"></a>
 </p>
 
@@ -71,8 +71,8 @@ Requires Python 3.9+ on your PATH as `python3` (see [Windows](#windows)). Nothin
 | **GitHub Copilot CLI** | `copilot plugin marketplace add Abhiindigloo/EvalHarness` then `copilot plugin install model-finder@model-finder` | ✅ | ✅ via `mcp.json` |
 | **Gemini CLI** | `gemini extensions install https://github.com/Abhiindigloo/EvalHarness` | ✅ | ✅ via `gemini-extension.json` |
 | **Cursor** | Plugin with skills: [cursor.directory/plugins/model-finder](https://cursor.directory/plugins/model-finder), or clone into `~/.cursor/plugins/local/model-finder` and reload the window | ✅ | ✅ via `mcp.json` or `.cursor-plugin/plugin.json` → `.mcp.json` |
-| **Cursor, MCP only** | [<img alt="Add to Cursor" src="https://img.shields.io/badge/Add%20to-Cursor-1c1b19?labelColor=f3f0e8">](https://cursor.com/en/install-mcp?name=model-finder&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJtb2RlbC1maW5kZXItbWNwPT0xLjMuNiJdLCJlbnYiOnsiTU9ERUxfRklOREVSX1JPT1QiOiIke3dvcmtzcGFjZUZvbGRlcn0ifX0%3D) (one click; runs `uvx model-finder-mcp==1.3.6`, needs [uv](https://docs.astral.sh/uv/)) | — | ✅ |
-| **Any MCP client, from PyPI** | `uvx model-finder-mcp==1.3.6` ([PyPI](https://pypi.org/project/model-finder-mcp/), [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=co.indigloo): `co.indigloo/model-finder`) | — | ✅ |
+| **Cursor, MCP only** | [<img alt="Add to Cursor" src="https://img.shields.io/badge/Add%20to-Cursor-1c1b19?labelColor=f3f0e8">](https://cursor.com/en/install-mcp?name=model-finder&config=eyJjb21tYW5kIjoidXZ4IiwiYXJncyI6WyJtb2RlbC1maW5kZXItbWNwPT0xLjMuNyJdLCJlbnYiOnsiTU9ERUxfRklOREVSX1JPT1QiOiIke3dvcmtzcGFjZUZvbGRlcn0ifX0%3D) (one click; runs `uvx model-finder-mcp==1.3.7`, needs [uv](https://docs.astral.sh/uv/)) | — | ✅ |
+| **Any MCP client, from PyPI** | `uvx model-finder-mcp==1.3.7` ([PyPI](https://pypi.org/project/model-finder-mcp/), [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=co.indigloo): `co.indigloo/model-finder`) | — | ✅ |
 | **VS Code, JetBrains, Windsurf, others** | Add the server to the client's MCP settings ([manual setup](#manual-mcp-setup)) | — | ✅ |
 | **Other Agent Skills clients** | Copy `skills/<name>/` into the client's skills directory | ✅ | — |
 
@@ -186,6 +186,16 @@ python3 -m unittest discover -s tests -v
 ```
 
 End-to-end tests run against a local mock of the OpenAI-compatible, Anthropic, and Gemini APIs, and drive the MCP server over stdio; no key or network access is needed. [`evaluations/`](evaluations/) holds a 10-question agent evaluation of the MCP tools.
+
+## Listed on
+
+[![Model Finder MCP server](https://mcprush.com/badge/model-finder-mcp/card.svg)](https://mcprush.com/to/model-finder-mcp?ref=badge)
+
+Also on [Glama](https://glama.ai/mcp/servers/Abhiindigloo/EvalHarness), [MCPNav](https://mcpnav.net/server/model-finder/), [Socket](https://socket.dev/pypi/package/model-finder-mcp), [PyPI](https://pypi.org/project/model-finder-mcp/) and the [MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=co.indigloo).
+
+## Sponsor
+
+Model Finder is free and MIT-licensed. If it saves you money on model calls, you can support its maintenance through [GitHub Sponsors](https://github.com/sponsors/Abhiindigloo). Sponsorship funds maintenance and new features; it does not buy priority support or change what the tools recommend.
 
 ## Releases
 
