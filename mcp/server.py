@@ -600,7 +600,8 @@ TOOLS: List[Dict[str, Any]] = [
                     "*.prompt.md, and JSON/JSONL with input, prompt or chat messages). Use after modelfinder_audit_models "
                     "when the user has no examples yet. Drafts have empty checks: agree checks with the user, then pass "
                     "them to modelfinder_create_eval_config. Read-only and local: no network calls, no files written. "
-                    "Drops candidates containing personal data or secrets and reports only categories and counts. "
+                    "Drops candidates with detected personal data or secrets and reports only categories and counts; "
+                    "detection is pattern-based, so names, addresses and free-text personal details can still appear. "
                     "Paginated; ids are stable across pages.",
      "inputSchema": _schema({"path": _PATH, "limit": _LIMIT(DRAFT_DEFAULT_LIMIT), "offset": _OFFSET}, []),
      "outputSchema": _out(["drafts", "excluded", "pagination"], drafts={"type": "array"}, excluded={"type": "object"},
@@ -655,14 +656,16 @@ TOOLS: List[Dict[str, Any]] = [
                     "an eval run; to test a single reply use modelfinder_check_output, and to turn the ranking into a "
                     "fallback chain use modelfinder_generate_routing. Read-only and local: no network calls, no files "
                     "written. Returns the recommendation, the ranked list, the cost/reliability cascade and models "
-                    "dropped as dominated (both more expensive and less reliable than another).",
+                    "dropped as dominated (a model is dropped when it costs at least as much per passing call as a model "
+                    "earlier in the cascade and is not more reliable; ties on cost or reliability count as dominated).",
      "inputSchema": _schema({"results": _RESULTS}, ["results"]),
      "outputSchema": _out(["recommendation", "ranked", "cascade", "dominated"], recommendation={"type": "object"},
                           ranked={"type": "array"}, cascade={"type": "array"}, dominated={"type": "array"})},
     {"name": "modelfinder_generate_routing", "title": "Generate cheapest-first routing", "handler": t_generate_routing,
      "render": md_routing,
      "description": "Turn a finished eval run (results.json object) into a cheapest-first routing.json, with quality "
-                    "guards and a personal-data policy, and an equivalent LiteLLM proxy config. Use after "
+                    "guards and a personal-data policy, plus a LiteLLM proxy config whose fallbacks fire on API errors only "
+                    "(it does not enforce the quality guards or personal-data policy). Use after "
                     "modelfinder_rank_eval_results when the user wants a fallback chain. Read-only and local: no network "
                     "calls, no files written. Nothing is deployed and the user's active model is not changed; returns "
                     "both files as text, the model chain and notes.",
