@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "model-finder-mcp"
-version = "1.3.6"
+version = "1.3.7"
 description = "Local MCP server: find the cheapest AI model that passes your own tests"
 readme = "README.md"
 license = "MIT"
@@ -22,6 +22,7 @@ dependencies = []
 [project.urls]
 Homepage = "https://github.com/Abhiindigloo/EvalHarness"
 Issues = "https://github.com/Abhiindigloo/EvalHarness/issues"
+Funding = "https://github.com/sponsors/Abhiindigloo"
 
 [project.scripts]
 model-finder-mcp = "model_finder_mcp.server:main"
