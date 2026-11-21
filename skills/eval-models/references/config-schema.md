@@ -49,6 +49,7 @@ Cloud-hosted routes (Bedrock, Vertex AI, Azure OpenAI) are reached through an Op
 | `id` | Unique, up to 64 chars (defaults to `ex-N`). |
 | `input` | The user prompt, up to 200,000 chars. Redacted or synthetic. |
 | `checks` | 1–50 checks, all must pass. |
+| `tags` | Optional groups for per-tag results, e.g. `["extraction", "hindi"]`. Lowercase letters, digits and `-`, up to 32 chars each, at most 8 per example; duplicates are removed and tags are sorted. `untagged` is reserved for examples without tags. |
 
 ### Check types
 
@@ -63,5 +64,24 @@ Cloud-hosted routes (Bedrock, Vertex AI, Azure OpenAI) are reached through an Op
 
 ## Outputs
 
-- `results.json` (`schema: model-finder-eval/1`): settings, candidates (env var names only), per-candidate summary, recommendation, and per-call records with tokens, cost, latency, failed checks, errors, and output previews (first 4,000 chars unless `--no-outputs`).
-- `summary.md`: table, result, caveats, and sample failures.
+- `results.json` (`schema: model-finder-eval/2`, `schema_version: 2`): settings, configured `repeats`, the `examples` list (id, tags, fingerprint), candidates (env var names only), per-candidate summary with `evidence`, recommendation, and per-call records with tokens, cost, latency, failed checks, errors, and output previews (first 4,000 chars unless `--no-outputs`).
+- `summary.md`: table, coverage and evidence (with a by-tag table when examples are tagged), result, caveats, and sample failures.
+
+Version 1 results files (`model-finder-eval/1`) still load in the ranking and routing tools; they have no example list, so tags are empty and fingerprints unknown.
+
+### Example fingerprint
+
+`sha256:` + SHA-256 of the example's normalised input (Unicode NFC, LF line endings, surrounding whitespace trimmed), its validated checks (order does not matter) and its sorted tags. Any change to the input, checks or tags gives a new fingerprint, so two runs are compared example by example only where fingerprints match.
+
+### Evidence per candidate (`summary[].evidence`)
+
+| Field | Meaning |
+|---|---|
+| `unique_examples`, `configured_repeats`, `scheduled_attempts`, `completed_attempts`, `incomplete_attempts` | Examples vs attempts, e.g. "4 unique examples, 2 configured repeats, 7 completed attempts". |
+| `errored_attempts` | Completed attempts that errored; they count as failures. |
+| `missing_measurements` | Non-errored attempts with no `cost`, `usage` or `latency`. |
+| `per_example` | Status per example id: `pass` (every completed attempt passed), `fail` (every completed attempt failed), `mixed`, or `no_data` (no completed attempts). `pass` describes observed attempts only. |
+| `statuses`, `example_pass_rate` | Counts of each status; passing examples ÷ unique examples. |
+| `by_tag` | The same counts per tag, plus `untagged`. An example with several tags counts in each group, so groups can overlap; overall figures always come from unique examples. |
+
+`pass_rate` and `cost_per_pass_usd` are unchanged and attempt-based (`cost_per_pass_basis: "passing attempts"`).

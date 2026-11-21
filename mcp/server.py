@@ -309,7 +309,7 @@ def t_create_eval_config(args: Dict[str, Any]) -> Dict[str, Any]:
         "pass_threshold": args.get("pass_threshold", 0.9),
         "repeats": args.get("repeats", 1),
         "candidates": candidates,
-        "examples": [{k: v for k, v in ex.items() if k in ("id", "input", "checks")} if isinstance(ex, dict) else ex
+        "examples": [{k: v for k, v in ex.items() if k in ("id", "input", "checks", "tags")} if isinstance(ex, dict) else ex
                      for ex in examples],
     }
     return {"config": config, **_config_report(config)}
@@ -321,9 +321,12 @@ def t_validate_eval_config(args: Dict[str, Any]) -> Dict[str, Any]:
 
 def _eval_results(args: Dict[str, Any]) -> Dict[str, Any]:
     results = _obj(args, "results")
-    if results.get("schema") != "model-finder-eval/1":
+    try:
+        core.results_schema_version(results)
+    except core.ConfigError:
         raise ToolError("'results' must be the full results.json object written by eval_models.py "
-                        "(it has \"schema\": \"model-finder-eval/1\"). Read the file and pass its contents.")
+                        f"(it has \"schema\": \"{core.RESULTS_SCHEMA_V2}\", or \"{core.RESULTS_SCHEMA_V1}\" "
+                        "for older runs). Read the file and pass its contents.") from None
     rows = results.get("summary")
     needed = ("id", "pass_rate", "meets_threshold", "cost_known", "cost_per_pass_usd")
     if not isinstance(rows, list) or not all(isinstance(r, dict) and all(k in r for k in needed) for r in rows):
@@ -625,7 +628,11 @@ TOOLS: List[Dict[str, Any]] = [
                         "description": "1-10 models to compare."},
          "examples": {"type": "array", "minItems": 1, "maxItems": 500, "description": "Inputs with the checks each reply must pass.",
                       "items": {"type": "object", "required": ["input", "checks"],
-                                "properties": {"id": {"type": "string"}, "input": {"type": "string"}, "checks": _CHECKS}}},
+                                "properties": {"id": {"type": "string"}, "input": {"type": "string"}, "checks": _CHECKS,
+                                               "tags": {"type": "array", "maxItems": 8,
+                                                        "items": {"type": "string", "pattern": "^[a-z0-9-]{1,32}$"},
+                                                        "description": "Optional groups for per-tag results, "
+                                                                       "e.g. [\"extraction\", \"hindi\"]."}}}},
          "settings": {"type": "object", "description": "max_output_tokens (default 1024), timeout_s (default 60), "
                                                        "temperature, system (system prompt)."},
          "pass_threshold": {**_NUM, "minimum": 0, "maximum": 1, "default": 0.9,

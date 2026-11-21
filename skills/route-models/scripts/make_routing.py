@@ -105,8 +105,7 @@ def build_routing(results: Any, guard_checks: Optional[List[Any]] = None,
                   manual: Optional[List[str]] = None, include_unknown: bool = False,
                   pii_policy: str = "warn") -> Tuple[Dict[str, Any], List[core.Candidate], str]:
     """Return (routing.json object, chain candidates, LiteLLM YAML). Used by the CLI and MCP server."""
-    if not isinstance(results, dict) or results.get("schema") != "model-finder-eval/1":
-        raise core.ConfigError("results must be a results.json object written by eval_models.py.")
+    core.results_schema_version(results)  # accepts version 1 and 2 results files
     if pii_policy not in PII_POLICIES:
         raise core.ConfigError(f"pii_policy must be one of {', '.join(PII_POLICIES)}.")
     cands_raw = results.get("candidates")

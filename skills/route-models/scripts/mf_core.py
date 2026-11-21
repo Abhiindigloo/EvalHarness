@@ -15,12 +15,14 @@ copies drift apart (see tests/test_all.py).
 """
 from __future__ import annotations
 
+import hashlib
 import ipaddress
 import json
 import math
 import os
 import re
 import time
+import unicodedata
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -274,6 +276,135 @@ def validate_checks(raw: Any, where: str, allow_empty: bool = False) -> List[Dic
                 raise ConfigError(f"{loc}: 'value' must be a positive integer.")
             out.append({"type": kind, "value": limit})
     return out
+
+
+# --------------------------------------------------------------------------
+# Results schema, example tags, fingerprints and per-example evidence
+# --------------------------------------------------------------------------
+RESULTS_SCHEMA_V1 = "model-finder-eval/1"
+RESULTS_SCHEMA_V2 = "model-finder-eval/2"
+RESULTS_SCHEMAS = {RESULTS_SCHEMA_V1: 1, RESULTS_SCHEMA_V2: 2}
+MAX_TAGS = 8
+MAX_TAG_CHARS = 32
+UNTAGGED = "untagged"  # group name for examples without tags; reserved, so not a valid tag
+TAG_RE = re.compile(r"^[a-z0-9-]{1,%d}$" % MAX_TAG_CHARS)
+EXAMPLE_STATUSES = ("pass", "fail", "mixed", "no_data")
+
+
+def results_schema_version(results: Any) -> int:
+    """Return 1 or 2 for a results.json object written by eval_models.py; raise ConfigError otherwise."""
+    version = RESULTS_SCHEMAS.get(results.get("schema")) if isinstance(results, dict) else None
+    if version is None:
+        raise ConfigError("results must be the full results.json object written by eval_models.py "
+                          f"(\"schema\": \"{RESULTS_SCHEMA_V2}\" or \"{RESULTS_SCHEMA_V1}\").")
+    return version
+
+
+def validate_tags(raw: Any, where: str) -> List[str]:
+    """Optional example tags: lowercase [a-z0-9-], up to 32 chars each, at most 8 after de-duplication."""
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ConfigError(f"{where}: 'tags' must be a list of strings.")
+    tags = set()
+    for tag in raw:
+        if not isinstance(tag, str) or not TAG_RE.match(tag):
+            raise ConfigError(f"{where}: each tag must be 1-{MAX_TAG_CHARS} characters of lowercase "
+                              "letters, digits or '-'.")
+        if tag == UNTAGGED:
+            raise ConfigError(f"{where}: '{UNTAGGED}' is reserved for examples without tags.")
+        tags.add(tag)
+    if len(tags) > MAX_TAGS:
+        raise ConfigError(f"{where}: at most {MAX_TAGS} distinct tags per example.")
+    return sorted(tags)
+
+
+def normalize_input(text: str) -> str:
+    """Input as fingerprinted: Unicode NFC, LF line endings, surrounding whitespace trimmed."""
+    return unicodedata.normalize("NFC", text.replace("\r\n", "\n").replace("\r", "\n")).strip()
+
+
+def example_fingerprint(text: str, checks: List[Dict[str, Any]], tags: List[str]) -> str:
+    """SHA-256 of the normalised input, the validated checks (order-insensitive) and the sorted tags.
+
+    Two runs can compare an example only when its fingerprint matches; any change to the input,
+    checks or tags makes it a different example."""
+    payload = {
+        "input": normalize_input(text),
+        "checks": sorted(json.dumps(c, sort_keys=True, ensure_ascii=False) for c in checks),
+        "tags": sorted(tags),
+    }
+    blob = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
+    return "sha256:" + hashlib.sha256(blob.encode("utf-8")).hexdigest()
+
+
+def example_status(outcomes: List[bool]) -> str:
+    """Status of one example for one model from its completed attempts (errored attempts count as failures)."""
+    if not outcomes:
+        return "no_data"
+    if all(outcomes):
+        return "pass"
+    return "fail" if not any(outcomes) else "mixed"
+
+
+def _status_counts(statuses: List[str]) -> Dict[str, Any]:
+    counts = {s: statuses.count(s) for s in EXAMPLE_STATUSES}
+    return {"unique_examples": len(statuses), "statuses": counts,
+            "example_pass_rate": (counts["pass"] / len(statuses)) if statuses else None}
+
+
+def example_evidence(records: List[Dict[str, Any]], candidate_id: str,
+                     examples: List[Dict[str, Any]], repeats: Optional[int]) -> Dict[str, Any]:
+    """Coverage and evidence for one candidate: examples vs attempts, per-example statuses, per-tag groups.
+
+    `examples` is a list of {"id", "tags"}; `repeats` is the configured repeats (None if unknown).
+    Overall figures always come from unique examples; tag groups can overlap."""
+    outcomes: Dict[str, List[bool]] = {ex["id"]: [] for ex in examples}
+    completed = errors = 0
+    missing = {"cost": 0, "usage": 0, "latency": 0}
+    for rec in records:
+        if rec.get("candidate") != candidate_id or rec.get("example") not in outcomes:
+            continue
+        completed += 1
+        outcomes[rec["example"]].append(bool(rec.get("passed")) and not rec.get("error"))
+        if rec.get("error"):
+            errors += 1
+            continue
+        missing["cost"] += rec.get("cost_usd") is None
+        missing["usage"] += rec.get("uncached_input_tokens") is None or rec.get("output_tokens") is None
+        missing["latency"] += rec.get("latency_ms") is None
+    per_example = {eid: example_status(v) for eid, v in outcomes.items()}
+    scheduled = len(examples) * repeats if repeats else None
+    groups: Dict[str, List[str]] = {}
+    for ex in examples:
+        for tag in ex.get("tags") or [UNTAGGED]:
+            groups.setdefault(tag, []).append(per_example[ex["id"]])
+    return {
+        **_status_counts(list(per_example.values())),
+        "configured_repeats": repeats,
+        "scheduled_attempts": scheduled,
+        "completed_attempts": completed,
+        "incomplete_attempts": (scheduled - completed) if scheduled is not None else None,
+        "errored_attempts": errors,
+        "missing_measurements": missing,
+        "per_example": per_example,
+        "by_tag": {tag: _status_counts(statuses) for tag, statuses in sorted(groups.items())},
+    }
+
+
+def results_examples(results: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """Examples of a results object as [{"id", "tags", "fingerprint"}].
+
+    Version 1 files have no example list: ids come from the records in first-seen order, tags are
+    empty and fingerprints are None (compatibility with other runs is unknown)."""
+    if results_schema_version(results) >= 2 and isinstance(results.get("examples"), list):
+        return [{"id": ex.get("id"), "tags": list(ex.get("tags") or []), "fingerprint": ex.get("fingerprint")}
+                for ex in results["examples"] if isinstance(ex, dict)]
+    seen: List[str] = []
+    for rec in results.get("records") or []:
+        if isinstance(rec, dict) and rec.get("example") not in seen:
+            seen.append(rec.get("example"))
+    return [{"id": eid, "tags": [], "fingerprint": None} for eid in seen]
 
 
 # --------------------------------------------------------------------------

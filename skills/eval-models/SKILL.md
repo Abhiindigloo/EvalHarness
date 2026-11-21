@@ -20,7 +20,7 @@ Turn a model recommendation into evidence. The script sends identical prompts to
 
    The script scans the system prompt and every example before any call. Secrets (API keys, private keys) are always blocked. Personal data (Aadhaar, PAN, payment cards, emails, UPI IDs, Indian mobile numbers) blocks the run unless `--allow-personal-data` is passed. Only suggest that flag when the user confirms they have a lawful basis (for example consent) and are permitted to send that data to every candidate provider; under India's DPDP Act the user's organisation is responsible for that decision. When it is used, outputs are not saved unless `--keep-outputs` is added. The detector cannot see names, addresses, or free-text personal details, so still ask for redacted examples.
 
-3. **Define checks with the user.** Checks must reflect what "correct" means for their task: required fields (`json_keys`), required or forbidden content (`contains`, `not_contains`), formats (`regex`), exact answers (`exact`), and length (`max_chars`). Agree the pass threshold before running. Deterministic checks cannot grade open-ended quality such as tone or summary faithfulness; for those, keep outputs and have a human review them. Do not invent a grading score.
+3. **Define checks with the user.** Checks must reflect what "correct" means for their task: required fields (`json_keys`), required or forbidden content (`contains`, `not_contains`), formats (`regex`), exact answers (`exact`), and length (`max_chars`). Agree the pass threshold before running. If the examples fall into groups the user cares about (for example `extraction`, `hindi`), add `tags` so results are also reported per group. Deterministic checks cannot grade open-ended quality such as tone or summary faithfulness; for those, keep outputs and have a human review them. Do not invent a grading score.
 
 4. **Fill prices only from verified sources.** Set `price_per_million` from the provider's official pricing page for that exact route, with `source` (URL) and `checked` (date). If not verified, use `null`; the summary then reports cost as unknown, never as zero.
 
@@ -32,7 +32,7 @@ Turn a model recommendation into evidence. The script sends identical prompts to
    `python3 scripts/eval_models.py config.json --out model-eval-results`
    Use `--no-outputs` if the replies themselves are sensitive.
 
-8. **Report from summary.md** (or call `modelfinder_rank_eval_results` with results.json). Lead with the cheapest candidate meeting the threshold, then the table, then caveats (sample size, checks that cannot judge quality, unknown costs, truncated outputs). Quote measured numbers only from results.json or summary.md.
+8. **Report from summary.md** (or call `modelfinder_rank_eval_results` with results.json). Lead with the cheapest candidate meeting the threshold, then the table, then the coverage and evidence counts (unique examples, repeats, completed attempts; mixed and no-data examples), then caveats (sample size, checks that cannot judge quality, unknown costs, truncated outputs). Quote measured numbers only from results.json or summary.md.
 
 9. **Offer route-models** to build a cheapest-first routing setup from results.json.
 
