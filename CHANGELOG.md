@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased (1.4.0, in progress)
+
+Step 1 of 1.4.0: results schema v2.
+
+- **Example tags**: optional `tags` on each eval example (lowercase `[a-z0-9-]`, up to 32 chars, at most 8; de-duplicated and sorted; `untagged` reserved). `modelfinder_create_eval_config` keeps them.
+- **Results schema v2** (`model-finder-eval/2`, `schema_version: 2`): `results.json` now lists the examples with their tags and a fingerprint (SHA-256 of normalised input, checks and tags), and records the configured `repeats`.
+- **Coverage and evidence per model**: unique examples vs configured repeats vs completed attempts, errored attempts (counted as failures), missing cost/usage/latency, a pass / fail / mixed / no-data status per example, the example pass rate, and the same per tag. `summary.md` gains a "Coverage and evidence" section and a by-tag table. Cost per pass stays attempt-based and is now labelled so.
+- **Compatibility**: ranking and routing accept both version 1 and version 2 results files; ranking, the recommendation and routing are unchanged.
+
 ## 1.3.7 (2026-11-04)
 
 Prompt-injection labels, sponsorship links, and a CI fix.

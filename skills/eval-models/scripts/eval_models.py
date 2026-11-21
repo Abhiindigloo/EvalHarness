@@ -80,7 +80,10 @@ def parse_config(raw: Any) -> Dict[str, Any]:
         text = ex.get("input")
         if not isinstance(text, str) or not text.strip() or len(text) > MAX_INPUT_CHARS:
             raise core.ConfigError(f"{where}: 'input' must be non-empty text up to {MAX_INPUT_CHARS} chars.")
-        examples.append({"id": eid, "input": text, "checks": core.validate_checks(ex.get("checks"), where)})
+        checks = core.validate_checks(ex.get("checks"), where)
+        tags = core.validate_tags(ex.get("tags"), where)
+        examples.append({"id": eid, "input": text, "checks": checks, "tags": tags,
+                         "fingerprint": core.example_fingerprint(text, checks, tags)})
 
     repeats = raw.get("repeats", 1)
     if isinstance(repeats, bool) or not isinstance(repeats, int) or not 1 <= repeats <= MAX_REPEATS:
@@ -142,6 +145,7 @@ def summarize(records: List[Dict[str, Any]], cfg: Dict[str, Any]) -> List[Dict[s
         cost_known = all(c is not None for c in costs)
         total_cost = sum(c for c in costs if c is not None) if cost_known else None
         rate = passed / len(mine)
+        evidence = core.example_evidence(records, cand.id, cfg["examples"], cfg["repeats"])
         rows.append({
             "id": cand.id,
             "model": cand.model,
@@ -155,7 +159,9 @@ def summarize(records: List[Dict[str, Any]], cfg: Dict[str, Any]) -> List[Dict[s
             "p95_latency_ms": _percentile(latencies, 0.95),
             "total_cost_usd": total_cost,
             "cost_per_pass_usd": (total_cost / passed) if (total_cost is not None and passed) else None,
+            "cost_per_pass_basis": "passing attempts",
             "cost_known": cost_known,
+            "evidence": evidence,
         })
     return rows
 
@@ -185,6 +191,55 @@ def _fmt_ms(value: Optional[float]) -> str:
     return "—" if value is None else f"{value:,.0f} ms"
 
 
+def _fmt_rate(value: Optional[float]) -> str:
+    return "—" if value is None else f"{value:.0%}"
+
+
+def _plural(n: int, word: str) -> str:
+    return f"{n} {word}" if n == 1 else f"{n} {word}s"
+
+
+def evidence_lines(rows: List[Dict[str, Any]], cfg: Dict[str, Any]) -> List[str]:
+    """The 'Coverage and evidence' section of summary.md."""
+    lines = ["", "## Coverage and evidence", ""]
+    for r in rows:
+        ev = r["evidence"]
+        st = ev["statuses"]
+        parts = [f"{_plural(ev['unique_examples'], 'unique example')}, "
+                 f"{_plural(ev['configured_repeats'], 'configured repeat')}, "
+                 f"{_plural(ev['completed_attempts'], 'completed attempt')}"]
+        if ev["incomplete_attempts"]:
+            parts.append(f"{ev['incomplete_attempts']} scheduled attempts not completed")
+        lines.append(f"- **{r['id']}**: {'; '.join(parts)}. Examples: {st['pass']} pass, {st['mixed']} mixed, "
+                     f"{st['fail']} fail, {st['no_data']} no data.")
+        missing = {k: v for k, v in ev["missing_measurements"].items() if v}
+        extras = []
+        if ev["errored_attempts"]:
+            extras.append(f"{_plural(ev['errored_attempts'], 'errored attempt')} (counted as failures)")
+        if missing:
+            extras.append("missing " + ", ".join(f"{k} on {_plural(v, 'attempt')}" for k, v in missing.items()))
+        if extras:
+            lines.append(f"  - {'; '.join(extras)}.")
+    lines += ["", "Example pass rate = examples where every completed attempt passed ÷ unique examples. "
+                  "Cost per passing attempt is attempt-based."]
+    tags = sorted({t for ex in cfg["examples"] for t in ex["tags"]})
+    if tags:
+        groups = tags + ([core.UNTAGGED] if any(not ex["tags"] for ex in cfg["examples"]) else [])
+        lines += ["", "### By tag", "",
+                  "Examples with several tags count in each group, so group totals can overlap.", "",
+                  "| Tag | Examples | " + " | ".join(r["id"] for r in rows) + " |",
+                  "|---|---|" + "---|" * len(rows)]
+        for tag in groups:
+            first = rows[0]["evidence"]["by_tag"].get(tag, {}) if rows else {}
+            cells = []
+            for r in rows:
+                g = r["evidence"]["by_tag"].get(tag)
+                cells.append("—" if not g else f"{g['statuses']['pass']}/{g['unique_examples']} "
+                                               f"({_fmt_rate(g['example_pass_rate'])})")
+            lines.append(f"| {tag} | {first.get('unique_examples', 0)} | " + " | ".join(cells) + " |")
+    return lines
+
+
 def write_summary(path: Path, cfg: Dict[str, Any], rows: List[Dict[str, Any]], rec: Dict[str, Any],
                   records: List[Dict[str, Any]], started: str, protection: Dict[str, Any]) -> None:
     lines = [
@@ -195,16 +250,20 @@ def write_summary(path: Path, cfg: Dict[str, Any], rows: List[Dict[str, Any]], r
         f"- Examples: {len(cfg['examples'])} × repeats: {cfg['repeats']}",
         f"- Pass threshold: {cfg['pass_threshold']:.0%} of calls must pass every check",
         "",
-        "| Candidate | Model | Pass rate | Errors | Median latency | p95 latency | Total cost | Cost / pass |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Candidate | Model | Pass rate (attempts) | Example pass rate | Errors | Median latency | p95 latency "
+        "| Total cost | Cost / passing attempt |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for r in rows:
         mark = " ✅" if r["meets_threshold"] else ""
+        ev = r["evidence"]
         lines.append(
             f"| {r['id']}{mark} | `{r['model']}` | {r['passed']}/{r['calls']} ({r['pass_rate']:.0%}) | "
+            f"{ev['statuses']['pass']}/{ev['unique_examples']} ({_fmt_rate(ev['example_pass_rate'])}) | "
             f"{r['errors']} | {_fmt_ms(r['median_latency_ms'])} | {_fmt_ms(r['p95_latency_ms'])} | "
             f"{_fmt_usd(r['total_cost_usd'])} | {_fmt_usd(r['cost_per_pass_usd'])} |"
         )
+    lines += evidence_lines(rows, cfg)
     lines += ["", "## Result", ""]
     if rec["cheapest_passing"]:
         lines.append(f"Cheapest candidate meeting the threshold on this sample (by cost per passing call): "
@@ -351,10 +410,14 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         args.out.mkdir(parents=True, exist_ok=True)
         payload = {
-            "schema": "model-finder-eval/1",
+            "schema": core.RESULTS_SCHEMA_V2,
+            "schema_version": 2,
             "started_utc": started,
             "task": cfg["task"],
             "pass_threshold": cfg["pass_threshold"],
+            "repeats": cfg["repeats"],
+            "examples": [{"id": ex["id"], "tags": ex["tags"], "fingerprint": ex["fingerprint"]}
+                         for ex in cfg["examples"]],
             "settings": {"max_output_tokens": cfg["settings"].max_output_tokens,
                          "timeout_s": cfg["settings"].timeout_s,
                          "temperature": cfg["settings"].temperature,

@@ -201,9 +201,9 @@ class EndToEndTest(unittest.TestCase):
                  "api_key_env": "MF_GEMINI_KEY", "price_per_million": price(1, 4)},
             ],
             "examples": [
-                {"id": "easy", "input": "easy invoice", "checks": [
+                {"id": "easy", "input": "easy invoice", "tags": ["extraction", "easy"], "checks": [
                     {"type": "json_keys", "keys": ["invoice", "total"]}, {"type": "contains", "value": "INV-1"}]},
-                {"id": "hard", "input": "hard invoice", "checks": [
+                {"id": "hard", "input": "hard invoice", "tags": ["extraction"], "checks": [
                     {"type": "json_keys", "keys": ["invoice", "total"]}]},
             ],
         }
@@ -236,7 +236,34 @@ class EndToEndTest(unittest.TestCase):
             # Secrets never written to disk.
             for name in ("results.json", "summary.md"):
                 self.assertNotIn(SECRET, (out / name).read_text())
-            self.assertIn("Cheapest candidate meeting the threshold", (out / "summary.md").read_text())
+            summary_md = (out / "summary.md").read_text()
+            self.assertIn("Cheapest candidate meeting the threshold", summary_md)
+
+            # Results schema v2: example list with tags and fingerprints, per-example evidence per model.
+            self.assertEqual((results["schema"], results["schema_version"], results["repeats"]),
+                             ("model-finder-eval/2", 2, 1))
+            self.assertEqual([(e["id"], e["tags"]) for e in results["examples"]],
+                             [("easy", ["easy", "extraction"]), ("hard", ["extraction"])])
+            self.assertTrue(all(re.fullmatch(r"sha256:[0-9a-f]{64}", e["fingerprint"]) for e in results["examples"]))
+            ev = rows["cheap"]["evidence"]
+            self.assertEqual(ev["per_example"], {"easy": "pass", "hard": "fail"})
+            self.assertEqual((ev["unique_examples"], ev["completed_attempts"], ev["example_pass_rate"]), (2, 2, 0.5))
+            self.assertEqual(ev["by_tag"]["extraction"]["example_pass_rate"], 0.5)
+            self.assertEqual(ev["by_tag"]["easy"]["statuses"]["pass"], 1)
+            self.assertEqual(rows["claude"]["evidence"]["missing_measurements"]["cost"], 2)
+            self.assertEqual(rows["cheap"]["cost_per_pass_basis"], "passing attempts")
+            self.assertIn("## Coverage and evidence", summary_md)
+            self.assertIn("2 unique examples, 1 configured repeat, 2 completed attempts", summary_md)
+            self.assertIn("| extraction | 2 |", summary_md)
+
+            # Version 1 files still load: routing from a v1-labelled copy gives the same chain.
+            v1 = dict(results, schema="model-finder-eval/1")
+            for key in ("schema_version", "examples", "repeats"):
+                v1.pop(key)
+            self.assertEqual(routemod.build_routing(v1)[0]["chain"], routemod.build_routing(results)[0]["chain"])
+            self.assertEqual(core.results_examples(v1),
+                             [{"id": "easy", "tags": [], "fingerprint": None},
+                              {"id": "hard", "tags": [], "fingerprint": None}])
 
             guards = self.tmp / "guards.json"
             guards.write_text(json.dumps({"checks": [{"type": "json_keys", "keys": ["invoice", "total"]}]}))
@@ -279,6 +306,76 @@ class EndToEndTest(unittest.TestCase):
             self.assertEqual(run_quiet(evalmod.main, [str(cfg), "--dry-run"]), 0)
             self.assertEqual(len(MockProvider.seen_auth), calls_before, "dry run made network calls")
             self.assertEqual(run_quiet(evalmod.main, [str(cfg), "--out", str(self.tmp / "x")]), 2)
+
+
+class EvidenceTest(unittest.TestCase):
+    """Results schema v2: tags, example fingerprints and per-example statuses (1.4.0 contract)."""
+
+    def test_tags_normalised_and_validated(self):
+        self.assertEqual(core.validate_tags(["b", "a-1", "b"], "ex"), ["a-1", "b"])
+        self.assertEqual(core.validate_tags(None, "ex"), [])
+        for bad in (["Upper"], ["has space"], ["x" * 33], [""], ["untagged"], "extraction", [1],
+                    [f"t{i}" for i in range(9)]):
+            with self.assertRaises(core.ConfigError, msg=repr(bad)):
+                core.validate_tags(bad, "ex")
+        self.assertEqual(len(core.validate_tags([f"t{i % 8}" for i in range(20)], "ex")), 8)  # 8 after de-dup
+
+    def test_fingerprint_stable_and_sensitive(self):
+        checks = [{"type": "contains", "value": "a", "ignore_case": False}, {"type": "max_chars", "value": 9}]
+        base = core.example_fingerprint("line one\nline two", checks, ["x", "y"])
+        self.assertEqual(base, core.example_fingerprint("  line one\r\nline two\n", list(reversed(checks)), ["y", "x"]))
+        self.assertEqual(base, core.example_fingerprint("line one\nline two", checks, ["x", "y"]))
+        self.assertNotEqual(base, core.example_fingerprint("line one\nline 2", checks, ["x", "y"]))
+        self.assertNotEqual(base, core.example_fingerprint("line one\nline two", checks[:1], ["x", "y"]))
+        self.assertNotEqual(base, core.example_fingerprint("line one\nline two", checks, ["x"]))
+        # NFC normalisation: precomposed and combining forms of "é" fingerprint the same.
+        self.assertEqual(core.example_fingerprint("café", checks, []),
+                         core.example_fingerprint("café", checks, []))
+
+    def test_example_status(self):
+        self.assertEqual([core.example_status(o) for o in ([True, True], [False], [True, False], [])],
+                         ["pass", "fail", "mixed", "no_data"])
+
+    def test_examples_vs_attempts(self):
+        def rec(ex, passed, error=None, cost=0.001):
+            return {"candidate": "m", "example": ex, "passed": passed, "error": error, "cost_usd": cost,
+                    "latency_ms": None if error else 10.0, "uncached_input_tokens": None if error else 5,
+                    "output_tokens": None if error else 5}
+        records = [rec("a", True), rec("a", True), rec("b", True), rec("b", False),
+                   rec("c", False, error="timeout", cost=None), rec("c", True, cost=None),
+                   rec("d", True),  # 'd' has one attempt missing: still "pass" on observed attempts
+                   {"candidate": "other", "example": "a", "passed": False}]
+        examples = [{"id": "a", "tags": ["x"]}, {"id": "b", "tags": ["x", "y"]}, {"id": "c", "tags": []},
+                    {"id": "d", "tags": ["y"]}, {"id": "e", "tags": []}]
+        ev = core.example_evidence(records, "m", examples, 2)
+        self.assertEqual(ev["per_example"], {"a": "pass", "b": "mixed", "c": "mixed", "d": "pass", "e": "no_data"})
+        self.assertEqual(ev["statuses"], {"pass": 2, "fail": 0, "mixed": 2, "no_data": 1})
+        self.assertEqual((ev["unique_examples"], ev["configured_repeats"], ev["scheduled_attempts"],
+                          ev["completed_attempts"], ev["incomplete_attempts"], ev["errored_attempts"]),
+                         (5, 2, 10, 7, 3, 1))
+        self.assertEqual(ev["example_pass_rate"], 2 / 5)
+        self.assertEqual(ev["missing_measurements"], {"cost": 1, "usage": 0, "latency": 0})
+        self.assertEqual({t: g["unique_examples"] for t, g in ev["by_tag"].items()},
+                         {"untagged": 2, "x": 2, "y": 2})  # 'b' counts in x and y
+        self.assertEqual(ev["by_tag"]["y"]["statuses"], {"pass": 1, "fail": 0, "mixed": 1, "no_data": 0})
+
+    def test_config_tags_and_fingerprints(self):
+        cand = {"id": "c", "provider": "openai_compatible", "model": "m", "base_url": "http://localhost:1"}
+        ex = {"id": "e", "input": "hello", "checks": [{"type": "contains", "value": "hi"}]}
+        cfg = evalmod.parse_config({"settings": {"max_output_tokens": 10}, "candidates": [cand],
+                                    "examples": [dict(ex, tags=["b", "a"]), dict(ex, id="f")]})
+        self.assertEqual([e["tags"] for e in cfg["examples"]], [["a", "b"], []])
+        self.assertNotEqual(cfg["examples"][0]["fingerprint"], cfg["examples"][1]["fingerprint"])
+        with self.assertRaises(core.ConfigError):
+            evalmod.parse_config({"settings": {"max_output_tokens": 10}, "candidates": [cand],
+                                  "examples": [dict(ex, tags=["Bad Tag"])]})
+
+    def test_schema_versions(self):
+        self.assertEqual(core.results_schema_version({"schema": "model-finder-eval/1"}), 1)
+        self.assertEqual(core.results_schema_version({"schema": "model-finder-eval/2"}), 2)
+        for bad in ({"schema": "model-finder-eval/3"}, {}, [], None):
+            with self.assertRaises(core.ConfigError):
+                core.results_schema_version(bad)
 
 
 class RankingTest(unittest.TestCase):

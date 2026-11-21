@@ -344,10 +344,26 @@ class McpProtocolTest(unittest.TestCase):
             keyed = dict(cfg, candidates=[dict(cand, api_key="sk-123")])
             self.assertFalse(result_json(c.call("modelfinder_validate_eval_config", {"config": keyed}))["valid"])
 
+            tagged = result_json(c.call("modelfinder_create_eval_config", {
+                "candidates": [cand], "examples": [{"id": "e1", "input": "Classify: refund", "tags": ["billing", "en"],
+                                                    "checks": [{"type": "contains", "value": "refund"}]}]}))
+            self.assertTrue(tagged["valid"], tagged.get("error"))
+            self.assertEqual(tagged["config"]["examples"][0]["tags"], ["billing", "en"])
+            bad_tags = dict(tagged["config"], examples=[dict(tagged["config"]["examples"][0], tags=["Billing"])])
+            self.assertFalse(result_json(c.call("modelfinder_validate_eval_config", {"config": bad_tags}))["valid"])
+
             ranked = result_json(c.call("modelfinder_rank_eval_results", {"results": sample_results()}))
             self.assertEqual(ranked["recommendation"]["cheapest_passing"], "small")
             self.assertEqual(ranked["cascade"], ["small", "big"])
             self.assertEqual(ranked["dominated"], ["mid"])
+            # Version 2 results files are accepted the same way; unknown schemas are refused.
+            v2 = dict(sample_results(), schema="model-finder-eval/2", schema_version=2)
+            self.assertEqual(result_json(c.call("modelfinder_rank_eval_results", {"results": v2}))["cascade"],
+                             ["small", "big"])
+            self.assertEqual(result_json(c.call("modelfinder_generate_routing", {"results": v2}))["chain"],
+                             ["small", "big"])
+            unknown = c.call("modelfinder_rank_eval_results", {"results": dict(v2, schema="model-finder-eval/9")})
+            self.assertTrue(unknown["isError"])
 
             routing = result_json(c.call("modelfinder_generate_routing", {
                 "results": sample_results(), "pii_policy": "block",
