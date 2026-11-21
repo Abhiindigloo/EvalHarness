@@ -358,6 +358,12 @@ class EvidenceTest(unittest.TestCase):
         self.assertEqual({t: g["unique_examples"] for t, g in ev["by_tag"].items()},
                          {"untagged": 2, "x": 2, "y": 2})  # 'b' counts in x and y
         self.assertEqual(ev["by_tag"]["y"]["statuses"], {"pass": 1, "fail": 0, "mixed": 1, "no_data": 0})
+        # Attempt-level evidence per tag: 'untagged' holds c (1 error, 1 unpriced) and e (no attempts).
+        untagged = ev["by_tag"]["untagged"]
+        self.assertEqual((untagged["scheduled_attempts"], untagged["completed_attempts"],
+                          untagged["incomplete_attempts"], untagged["errored_attempts"]), (4, 2, 2, 1))
+        self.assertEqual(untagged["missing_measurements"], {"cost": 1, "usage": 0, "latency": 0})
+        self.assertEqual((ev["by_tag"]["y"]["completed_attempts"], ev["by_tag"]["y"]["incomplete_attempts"]), (3, 1))
 
     def test_config_tags_and_fingerprints(self):
         cand = {"id": "c", "provider": "openai_compatible", "model": "m", "base_url": "http://localhost:1"}

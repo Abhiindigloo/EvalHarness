@@ -82,6 +82,6 @@ Version 1 results files (`model-finder-eval/1`) still load in the ranking and ro
 | `missing_measurements` | Non-errored attempts with no `cost`, `usage` or `latency`. |
 | `per_example` | Status per example id: `pass` (every completed attempt passed), `fail` (every completed attempt failed), `mixed`, or `no_data` (no completed attempts). `pass` describes observed attempts only. |
 | `statuses`, `example_pass_rate` | Counts of each status; passing examples ÷ unique examples. |
-| `by_tag` | The same counts per tag, plus `untagged`. An example with several tags counts in each group, so groups can overlap; overall figures always come from unique examples. |
+| `by_tag` | Per tag, plus `untagged`: the status counts and example pass rate, and the attempt-level fields above (scheduled, completed, incomplete and errored attempts, missing measurements). An example with several tags counts in each group, so groups can overlap; overall figures always come from unique examples. |
 
 `pass_rate` and `cost_per_pass_usd` are unchanged and attempt-based (`cost_per_pass_basis: "passing attempts"`).
