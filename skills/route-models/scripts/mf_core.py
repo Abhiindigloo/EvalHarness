@@ -287,7 +287,7 @@ RESULTS_SCHEMAS = {RESULTS_SCHEMA_V1: 1, RESULTS_SCHEMA_V2: 2}
 MAX_TAGS = 8
 MAX_TAG_CHARS = 32
 UNTAGGED = "untagged"  # group name for examples without tags; reserved, so not a valid tag
-TAG_RE = re.compile(r"^[a-z0-9-]{1,%d}$" % MAX_TAG_CHARS)
+TAG_RE = re.compile(r"[a-z0-9-]{1,%d}" % MAX_TAG_CHARS)  # used with fullmatch: no trailing newline
 EXAMPLE_STATUSES = ("pass", "fail", "mixed", "no_data")
 
 
@@ -308,7 +308,7 @@ def validate_tags(raw: Any, where: str) -> List[str]:
         raise ConfigError(f"{where}: 'tags' must be a list of strings.")
     tags = set()
     for tag in raw:
-        if not isinstance(tag, str) or not TAG_RE.match(tag):
+        if not isinstance(tag, str) or not TAG_RE.fullmatch(tag):
             raise ConfigError(f"{where}: each tag must be 1-{MAX_TAG_CHARS} characters of lowercase "
                               "letters, digits or '-'.")
         if tag == UNTAGGED:

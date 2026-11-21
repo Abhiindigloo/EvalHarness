@@ -49,7 +49,7 @@ Cloud-hosted routes (Bedrock, Vertex AI, Azure OpenAI) are reached through an Op
 | `id` | Unique, up to 64 chars (defaults to `ex-N`). |
 | `input` | The user prompt, up to 200,000 chars. Redacted or synthetic. |
 | `checks` | 1–50 checks, all must pass. |
-| `tags` | Optional groups for per-tag results, e.g. `["extraction", "hindi"]`. Lowercase letters, digits and `-`, up to 32 chars each, at most 8 per example; duplicates are removed and tags are sorted. `untagged` is reserved for examples without tags. |
+| `tags` | Optional groups for per-tag results, e.g. `["extraction", "hindi"]`. Lowercase letters, digits and `-`, up to 32 chars each (the whole tag must match: no spaces or line breaks), at most 8 distinct tags per example; duplicates are removed and tags are sorted. `untagged` is reserved for examples without tags. |
 
 ### Check types
 

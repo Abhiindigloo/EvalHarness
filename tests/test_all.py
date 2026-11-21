@@ -314,7 +314,7 @@ class EvidenceTest(unittest.TestCase):
     def test_tags_normalised_and_validated(self):
         self.assertEqual(core.validate_tags(["b", "a-1", "b"], "ex"), ["a-1", "b"])
         self.assertEqual(core.validate_tags(None, "ex"), [])
-        for bad in (["Upper"], ["has space"], ["x" * 33], [""], ["untagged"], "extraction", [1],
+        for bad in (["Upper"], ["has space"], ["billing\n"], ["x" * 32 + "\n"], ["x" * 33], [""], ["untagged"], "extraction", [1],
                     [f"t{i}" for i in range(9)]):
             with self.assertRaises(core.ConfigError, msg=repr(bad)):
                 core.validate_tags(bad, "ex")
