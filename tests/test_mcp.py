@@ -227,6 +227,10 @@ class McpProtocolTest(unittest.TestCase):
                 self.assertTrue(res["isError"], args)
                 self.assertIn(expect, res["content"][0]["text"])
             self.assertFalse(c.call("modelfinder_create_eval_config", {"candidates": [cand], "examples": [ex]})["isError"])
+            # Whole-valued floats are integers in JSON Schema; fractional values and booleans are not.
+            self.assertFalse(c.call("modelfinder_estimate_memory", {"params_b": 7, "bits": 16, "concurrency": 1.0})["isError"])
+            self.assertTrue(c.call("modelfinder_estimate_memory", {"params_b": 7, "bits": 16, "concurrency": 1.5})["isError"])
+            self.assertTrue(c.call("modelfinder_estimate_memory", {"params_b": 7, "bits": 16, "concurrency": True})["isError"])
             c.send(b"this is not json")
             self.assertEqual(c.recv()["error"]["code"], -32700)
             c.send({"jsonrpc": "1.0", "id": 99, "method": "ping"})
