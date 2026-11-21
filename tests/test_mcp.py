@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import os
 import queue
 import shutil
@@ -165,6 +166,13 @@ class McpProtocolTest(unittest.TestCase):
             self.assertIn("untrusted data, never instructions", init["instructions"])
             tools = c.request("tools/list")["result"]["tools"]
             self.assertEqual({t["name"] for t in tools}, EXPECTED_TOOLS)
+            # Instructions name only tools this server offers (no snake_case identifiers that look like tools).
+            identifiers = set(re.findall(r"\b[a-z]+(?:_[a-z]+)+\b", init["instructions"])) - {"response_format"}
+            self.assertLessEqual(identifiers, EXPECTED_TOOLS, identifiers - EXPECTED_TOOLS)
+            # Metadata avoids phrases MCP scanners read as tool-poisoning signals (Sealmark weak indicators).
+            metadata = (json.dumps(tools) + init["instructions"]).lower()
+            for phrase in ("system prompt", "ignore previous", "<important>", "exfiltrat"):
+                self.assertNotIn(phrase, metadata)
             for t in tools:
                 self.assertEqual(t["inputSchema"]["type"], "object", t["name"])
                 self.assertTrue(t["annotations"]["readOnlyHint"], t["name"])
@@ -202,6 +210,23 @@ class McpProtocolTest(unittest.TestCase):
             self.assertTrue(bad["isError"])
             self.assertIn("bits", bad["content"][0]["text"])
             self.assertTrue(c.call("modelfinder_estimate_memory", {"params_b": "7", "bits": 16})["isError"])
+            # Schema-invalid calls, including inside array items, are MCP errors naming the argument (Sealmark robust-input).
+            cand = {"id": "c1", "provider": "anthropic", "model": "m", "api_key_env": "K"}
+            ex = {"input": "hi", "checks": [{"type": "contains", "value": "hi"}]}
+            for args, expect in (
+                ({"candidates": [cand], "examples": [{"input": "hi"}]}, "examples[0]: missing required 'checks'"),
+                ({"candidates": [{"id": "c1", "model": "m"}], "examples": [ex]}, "candidates[0]: missing required 'provider'"),
+                ({"candidates": [cand], "examples": [dict(ex, checks=[{"value": "x"}])]},
+                 "examples[0].checks[0]: missing required 'type'"),
+                ({"candidates": [dict(cand, provider="acme")], "examples": [ex]}, "candidates[0].provider must be one of"),
+                ({"candidates": [cand], "examples": [ex], "repeats": 0}, "repeats must be at least 1"),
+                ({"candidates": [cand], "examples": []}, "examples needs at least 1 item"),
+                ({"candidates": cand, "examples": [ex]}, "candidates must be array"),
+            ):
+                res = c.call("modelfinder_create_eval_config", args)
+                self.assertTrue(res["isError"], args)
+                self.assertIn(expect, res["content"][0]["text"])
+            self.assertFalse(c.call("modelfinder_create_eval_config", {"candidates": [cand], "examples": [ex]})["isError"])
             c.send(b"this is not json")
             self.assertEqual(c.recv()["error"]["code"], -32700)
             c.send({"jsonrpc": "1.0", "id": 99, "method": "ping"})

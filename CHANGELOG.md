@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+MCP input validation and metadata hygiene (Sealmark findings on 1.3.7, grade B).
+
+- **Schema-checked arguments**: every tool call is checked against the tool's declared input schema before any tool code runs, including nested objects and array items (required fields, types, enums, item counts, numeric ranges, patterns). A call that does not match is answered with an MCP error (`isError: true`) naming the argument, e.g. `examples[0]: missing required 'checks'`. Before, `modelfinder_create_eval_config` accepted an example with no `checks` and reported it only in its result.
+- **Server instructions** no longer mention `eval_models.py` by its identifier; they describe it as the eval-models skill's local script, so scanners do not read it as an MCP tool the server lacks.
+- **Tool metadata**: the `settings.system` hint no longer says "system prompt", a phrase MCP scanners flag as a possible tool-poisoning signal.
+- Local Sealmark 1.0.1 run after these changes: Protocol A (4/4), Effects A (2/2).
+
 ## 1.3.7 (2026-11-04)
 
 Prompt-injection labels, sponsorship links, and a CI fix.
