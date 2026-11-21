@@ -287,7 +287,7 @@ RESULTS_SCHEMAS = {RESULTS_SCHEMA_V1: 1, RESULTS_SCHEMA_V2: 2}
 MAX_TAGS = 8
 MAX_TAG_CHARS = 32
 UNTAGGED = "untagged"  # group name for examples without tags; reserved, so not a valid tag
-TAG_RE = re.compile(r"^[a-z0-9-]{1,%d}$" % MAX_TAG_CHARS)
+TAG_RE = re.compile(r"[a-z0-9-]{1,%d}" % MAX_TAG_CHARS)  # used with fullmatch: no trailing newline
 EXAMPLE_STATUSES = ("pass", "fail", "mixed", "no_data")
 
 
@@ -308,7 +308,7 @@ def validate_tags(raw: Any, where: str) -> List[str]:
         raise ConfigError(f"{where}: 'tags' must be a list of strings.")
     tags = set()
     for tag in raw:
-        if not isinstance(tag, str) or not TAG_RE.match(tag):
+        if not isinstance(tag, str) or not TAG_RE.fullmatch(tag):
             raise ConfigError(f"{where}: each tag must be 1-{MAX_TAG_CHARS} characters of lowercase "
                               "letters, digits or '-'.")
         if tag == UNTAGGED:
@@ -360,35 +360,43 @@ def example_evidence(records: List[Dict[str, Any]], candidate_id: str,
     `examples` is a list of {"id", "tags"}; `repeats` is the configured repeats (None if unknown).
     Overall figures always come from unique examples; tag groups can overlap."""
     outcomes: Dict[str, List[bool]] = {ex["id"]: [] for ex in examples}
-    completed = errors = 0
-    missing = {"cost": 0, "usage": 0, "latency": 0}
+    errors = {eid: 0 for eid in outcomes}
+    missing = {eid: {"cost": 0, "usage": 0, "latency": 0} for eid in outcomes}
     for rec in records:
-        if rec.get("candidate") != candidate_id or rec.get("example") not in outcomes:
+        eid = rec.get("example")
+        if rec.get("candidate") != candidate_id or eid not in outcomes:
             continue
-        completed += 1
-        outcomes[rec["example"]].append(bool(rec.get("passed")) and not rec.get("error"))
+        outcomes[eid].append(bool(rec.get("passed")) and not rec.get("error"))
         if rec.get("error"):
-            errors += 1
+            errors[eid] += 1
             continue
-        missing["cost"] += rec.get("cost_usd") is None
-        missing["usage"] += rec.get("uncached_input_tokens") is None or rec.get("output_tokens") is None
-        missing["latency"] += rec.get("latency_ms") is None
+        missing[eid]["cost"] += int(rec.get("cost_usd") is None)
+        missing[eid]["usage"] += int(rec.get("uncached_input_tokens") is None or rec.get("output_tokens") is None)
+        missing[eid]["latency"] += int(rec.get("latency_ms") is None)
     per_example = {eid: example_status(v) for eid, v in outcomes.items()}
-    scheduled = len(examples) * repeats if repeats else None
+
+    def summarise(ids: List[str]) -> Dict[str, Any]:
+        """Example statuses and attempt-level evidence for a set of examples (overall or one tag)."""
+        scheduled = len(ids) * repeats if repeats else None
+        completed = sum(len(outcomes[i]) for i in ids)
+        return {
+            **_status_counts([per_example[i] for i in ids]),
+            "scheduled_attempts": scheduled,
+            "completed_attempts": completed,
+            "incomplete_attempts": (scheduled - completed) if scheduled is not None else None,
+            "errored_attempts": sum(errors[i] for i in ids),
+            "missing_measurements": {k: sum(missing[i][k] for i in ids) for k in ("cost", "usage", "latency")},
+        }
+
     groups: Dict[str, List[str]] = {}
     for ex in examples:
         for tag in ex.get("tags") or [UNTAGGED]:
-            groups.setdefault(tag, []).append(per_example[ex["id"]])
+            groups.setdefault(tag, []).append(ex["id"])
     return {
-        **_status_counts(list(per_example.values())),
+        **summarise(list(outcomes)),
         "configured_repeats": repeats,
-        "scheduled_attempts": scheduled,
-        "completed_attempts": completed,
-        "incomplete_attempts": (scheduled - completed) if scheduled is not None else None,
-        "errored_attempts": errors,
-        "missing_measurements": missing,
         "per_example": per_example,
-        "by_tag": {tag: _status_counts(statuses) for tag, statuses in sorted(groups.items())},
+        "by_tag": {tag: summarise(ids) for tag, ids in sorted(groups.items())},
     }
 
 

@@ -629,10 +629,10 @@ TOOLS: List[Dict[str, Any]] = [
          "examples": {"type": "array", "minItems": 1, "maxItems": 500, "description": "Inputs with the checks each reply must pass.",
                       "items": {"type": "object", "required": ["input", "checks"],
                                 "properties": {"id": {"type": "string"}, "input": {"type": "string"}, "checks": _CHECKS,
-                                               "tags": {"type": "array", "maxItems": 8,
+                                               "tags": {"type": "array",
                                                         "items": {"type": "string", "pattern": "^[a-z0-9-]{1,32}$"},
-                                                        "description": "Optional groups for per-tag results, "
-                                                                       "e.g. [\"extraction\", \"hindi\"]."}}}},
+                                                        "description": "Optional groups for per-tag results, e.g. [\"extraction\", \"hindi\"]. "
+                                                                       "At most 8 distinct tags (duplicates are removed)."}}}},
          "settings": {"type": "object", "description": "max_output_tokens (default 1024), timeout_s (default 60), "
                                                        "temperature, system (system prompt)."},
          "pass_threshold": {**_NUM, "minimum": 0, "maximum": 1, "default": 0.9,

@@ -349,6 +349,10 @@ class McpProtocolTest(unittest.TestCase):
                                                     "checks": [{"type": "contains", "value": "refund"}]}]}))
             self.assertTrue(tagged["valid"], tagged.get("error"))
             self.assertEqual(tagged["config"]["examples"][0]["tags"], ["billing", "en"])
+            dup = result_json(c.call("modelfinder_create_eval_config", {  # 9 raw tags, 2 distinct: valid
+                "candidates": [cand], "examples": [{"input": "x", "tags": ["a", "b"] * 4 + ["a"],
+                                                    "checks": [{"type": "contains", "value": "x"}]}]}))
+            self.assertTrue(dup["valid"], dup.get("error"))
             bad_tags = dict(tagged["config"], examples=[dict(tagged["config"]["examples"][0], tags=["Billing"])])
             self.assertFalse(result_json(c.call("modelfinder_validate_eval_config", {"config": bad_tags}))["valid"])
 

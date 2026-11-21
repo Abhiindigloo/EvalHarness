@@ -49,7 +49,7 @@ Cloud-hosted routes (Bedrock, Vertex AI, Azure OpenAI) are reached through an Op
 | `id` | Unique, up to 64 chars (defaults to `ex-N`). |
 | `input` | The user prompt, up to 200,000 chars. Redacted or synthetic. |
 | `checks` | 1–50 checks, all must pass. |
-| `tags` | Optional groups for per-tag results, e.g. `["extraction", "hindi"]`. Lowercase letters, digits and `-`, up to 32 chars each, at most 8 per example; duplicates are removed and tags are sorted. `untagged` is reserved for examples without tags. |
+| `tags` | Optional groups for per-tag results, e.g. `["extraction", "hindi"]`. Lowercase letters, digits and `-`, up to 32 chars each (the whole tag must match: no spaces or line breaks), at most 8 distinct tags per example; duplicates are removed and tags are sorted. `untagged` is reserved for examples without tags. |
 
 ### Check types
 
@@ -82,6 +82,6 @@ Version 1 results files (`model-finder-eval/1`) still load in the ranking and ro
 | `missing_measurements` | Non-errored attempts with no `cost`, `usage` or `latency`. |
 | `per_example` | Status per example id: `pass` (every completed attempt passed), `fail` (every completed attempt failed), `mixed`, or `no_data` (no completed attempts). `pass` describes observed attempts only. |
 | `statuses`, `example_pass_rate` | Counts of each status; passing examples ÷ unique examples. |
-| `by_tag` | The same counts per tag, plus `untagged`. An example with several tags counts in each group, so groups can overlap; overall figures always come from unique examples. |
+| `by_tag` | Per tag, plus `untagged`: the status counts and example pass rate, and the attempt-level fields above (scheduled, completed, incomplete and errored attempts, missing measurements). An example with several tags counts in each group, so groups can overlap; overall figures always come from unique examples. |
 
 `pass_rate` and `cost_per_pass_usd` are unchanged and attempt-based (`cost_per_pass_basis: "passing attempts"`).
